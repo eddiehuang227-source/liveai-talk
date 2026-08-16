@@ -36,7 +36,22 @@ npm pack --dry-run       # 检查 tarball 内容，确认不含 Key 与未授权
 `/flowact/realtime/volc-token`、`/flowact/realtime/vidu/session`、client bundle 与
 boot manifest。
 
-## 4. 安全边界
+## 4. CI 一键 npm 发布
+
+仓库已带 `.github/workflows/publish.yml`：
+
+1. 在 repo 的 **Settings → Secrets and variables → Actions** 添加 `NPM_TOKEN`（npm access token，类型 Automation）；
+2. 在 GitHub 上发布一个新 Release（`published` 事件），或手动运行 workflow；
+3. CI 会先跑 `npm install` → `build` → 全量单测 → `npm pack --dry-run`，全部通过后才执行 `npm publish --access public`。
+
+本地等价命令：
+
+```sh
+npm adduser
+npm publish --access public
+```
+
+## 5. 安全边界
 
 - 所有云端 Secret 只通过 dsh `ctx.credentials` 引用；`cordis.patch.yml` 与配置中不含密钥。
 - Vidu API Key 留在用户本机 18088 代理中，插件只访问代理。
