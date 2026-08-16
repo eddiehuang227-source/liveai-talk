@@ -33,7 +33,8 @@
     "build": "node scripts/build.mjs",
     "prepare": "node scripts/build.mjs",
     "test": "node scripts/build.mjs && node --test test/*.test.mjs",
-    "test:integration": "node scripts/dsh-smoke-test.mjs"
+    "test:integration": "node scripts/dsh-smoke-test.mjs",
+      "record:live": "node scripts/record-live.mjs"
   },
   "engines": {
     "node": ">=22.13.0"
