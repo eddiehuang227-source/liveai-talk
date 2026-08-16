@@ -10,7 +10,7 @@ test('built-in characters follow the manifest shape', () => {
     assert.match(character.id, /^[a-z0-9][a-z0-9-]{0,63}$/)
     assert.ok(character.name.trim())
     assert.ok(character.persona.trim())
-    assert.ok(character.previewUrl.startsWith('/flowact/assets/'))
+    assert.ok(character.previewUrl.startsWith('/liveai/assets/'))
     assert.match(character.defaultEmotion, /^[a-z][a-z0-9-]*$/)
     for (const key of CAPABILITY_KEYS) {
       assert.ok(character.providers[key], `${character.id} must declare ${key} routing`)

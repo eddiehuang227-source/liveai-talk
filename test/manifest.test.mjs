@@ -7,7 +7,7 @@ const root = new URL('..', import.meta.url)
 const pkg = JSON.parse(readFileSync(new URL('package.json', root), 'utf8'))
 
 test('package declares the dsh bundle and client manifests', () => {
-  assert.equal(pkg.name, 'dsh-flowact-avatar')
+  assert.equal(pkg.name, 'dsh-liveai-talk')
   assert.equal(pkg.dsh.bundle.patch, './cordis.patch.yml')
   assert.equal(pkg.dsh.client.platform, 'web')
 })
@@ -29,7 +29,7 @@ test('built artifacts referenced by package.json exist', () => {
   }
   const client = readFileSync(new URL('lib/client.js', root), 'utf8')
   assert.match(client, /window\.__ModuleLoader__\.load/)
-  assert.match(client, /id: 'dsh-flowact-avatar'/)
+  assert.match(client, /id: 'dsh-liveai-talk'/)
 })
 
 test('package files list includes the install-time essentials', () => {

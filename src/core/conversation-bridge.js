@@ -1,5 +1,5 @@
 /**
- * ConversationBridge — connects the dsh session event log to the FlowAct
+ * ConversationBridge — connects the dsh session event log to the LiveAI Talk
  * dialogue pipeline.
  *
  * The dsh agent loop already owns model routing, history, tools, and
@@ -15,10 +15,10 @@ import { DialoguePipeline } from './dialogue-pipeline.js'
 /** Build a dsh UserMessage without importing dsh-llm at the wire boundary. */
 export function createFlowactUserMessage(text) {
   return {
-    id: `flowact-${randomUUID()}`,
+    id: `liveai-${randomUUID()}`,
     role: 'user',
     content: [{ type: 'text', text: String(text ?? '') }],
-    source: { kind: 'plugin', plugin: 'dsh-flowact-avatar' },
+    source: { kind: 'plugin', plugin: 'dsh-liveai-talk' },
   }
 }
 

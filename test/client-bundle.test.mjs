@@ -73,7 +73,7 @@ function fakeCtx() {
 
 test('client bundle registers under the package id', () => {
   const { handoff } = loadClient()
-  assert.equal(handoff.id, 'dsh-flowact-avatar')
+  assert.equal(handoff.id, 'dsh-liveai-talk')
   assert.equal(typeof handoff.factory, 'function')
 })
 
@@ -90,8 +90,8 @@ test('apply registers a reversible conversation view through the slot seam', () 
   exports.apply(ctx)
   assert.equal(registrations.length, 1)
   assert.equal(registrations[0].options.name, 'conversation.view')
-  assert.equal(registrations[0].options.id, 'flowact-avatar')
-  assert.equal(registrations[0].options.label, 'AI 数字人')
+  assert.equal(registrations[0].options.id, 'liveai-talk')
+  assert.equal(registrations[0].options.label, 'LiveAI Talk')
   assert.equal(typeof registrations[0].options.inject, 'function')
   assert.equal(typeof registrations[0].component, 'function')
   for (const dispose of disposers) dispose()
@@ -111,8 +111,8 @@ test('client TTS seam registers the zero-key browser provider and speaks through
   const { ctx, services } = fakeCtx()
   exports.apply(ctx)
 
-  const tts = services.get('flowactTts')
-  assert.ok(tts, 'client half must provide flowactTts')
+  const tts = services.get('liveaiTts')
+  assert.ok(tts, 'client half must provide liveaiTts')
   assert.deepEqual(JSON.parse(JSON.stringify(tts.list())), [{ id: 'browser-tts', label: '浏览器语音合成（零 Key）', available: true }])
   const handle = tts.speak('你好，我是星之宫知惠。')
   assert.equal(typeof handle.cancel, 'function')
@@ -140,8 +140,8 @@ test('client ASR seam registers the zero-key browser speech provider', () => {
   const { ctx, services } = fakeCtx()
   exports.apply(ctx)
 
-  const asr = services.get('flowactAsr')
-  assert.ok(asr, 'client half must provide flowactAsr')
+  const asr = services.get('liveaiAsr')
+  assert.ok(asr, 'client half must provide liveaiAsr')
   assert.deepEqual(JSON.parse(JSON.stringify(asr.list())), [{ id: 'browser-speech', label: '浏览器语音识别（零 Key）', available: true }])
 
   let transcript = ''

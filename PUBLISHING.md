@@ -13,14 +13,14 @@
 
 ```sh
 # npm 预编译包
-dsh plugin --profile demo add dsh-flowact-avatar
+dsh plugin --profile demo add dsh-liveai-talk
 
 # GitHub 直装（pin 提交；用户需允许 prepare）
-dsh plugin --profile demo add github:your/dsh-flowact-avatar#v0.1.0
+dsh plugin --profile demo add github:eddiehuang227-source/liveai-talk#v0.2.0
 
 # tarball
 npm pack
-dsh plugin --profile demo add ./dsh-flowact-avatar-0.1.0.tgz
+dsh plugin --profile demo add ./dsh-liveai-talk-0.2.0.tgz
 ```
 
 ## 3. 发布前验证
@@ -31,9 +31,9 @@ npm run test:integration # 真实 dsh：add → dump-config → web → HTTP/JS 
 npm pack --dry-run       # 检查 tarball 内容，确认不含 Key 与未授权素材
 ```
 
-集成测试已覆盖：`/flowact/health`、`/flowact/characters`、`/flowact/pipeline`、
-`/flowact/analyze`、`/flowact/talk`、`/flowact/turn`、`/flowact/video/submit`（jobs）、
-`/flowact/realtime/volc-token`、`/flowact/realtime/vidu/session`、client bundle 与
+集成测试已覆盖：`/liveai/health`、`/liveai/characters`、`/liveai/pipeline`、
+`/liveai/analyze`、`/liveai/talk`、`/liveai/turn`、`/liveai/video/submit`（jobs）、
+`/liveai/realtime/volc-token`、`/liveai/realtime/vidu/session`、client bundle 与
 boot manifest。
 
 ## 4. CI 一键 npm 发布
@@ -55,7 +55,7 @@ npm publish --access public
 
 - 所有云端 Secret 只通过 dsh `ctx.credentials` 引用；`cordis.patch.yml` 与配置中不含密钥。
 - Vidu API Key 留在用户本机 18088 代理中，插件只访问代理。
-- 视频任务以 dsh `ctx.jobs` 的 `flowact-video` kind 运行，随 owner/session 生命周期取消。
+- 视频任务以 dsh `ctx.jobs` 的 `liveai-video` kind 运行，随 owner/session 生命周期取消。
 - 不在 GitHub Actions 或 tarball 中写入 `.env`、凭证或 AItalk 授权素材。
 
 ## 5. 版本策略

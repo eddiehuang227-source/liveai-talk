@@ -1,17 +1,17 @@
 /**
- * dsh-flowact-avatar browser half.
+ * dsh-liveai-talk browser half.
  *
  * This file is the dsh client-bundle format: a lazy CJS factory registered
  * with `window.__ModuleLoader__.load`. Only platform modules (`react`) are
  * required; the component reaches the host half through the ordinary HTTP
- * route `/flowact/characters`.
+ * route `/liveai/characters`.
  *
  * UI contribution follows dsh slot discipline: one `conversation.view` entry,
  * registered inside `ctx.slots.inject(...)` so the registration waits for the
  * slot declaration and is removed when this plugin unloads.
  */
 window.__ModuleLoader__.load({
-  id: 'dsh-flowact-avatar',
+  id: 'dsh-liveai-talk',
   factory: (require) => {
     const React = require('react')
     const { createElement, useEffect, useState } = React
@@ -75,7 +75,7 @@ window.__ModuleLoader__.load({
       },
     }
 
-      /** Client-side ASR seam mirroring the host `flowactSeams.asr` registry. */
+      /** Client-side ASR seam mirroring the host `liveaiSeams.asr` registry. */
       class ClientAsrRuntime {
         constructor() {
           this.providers = new Map()
@@ -185,8 +185,8 @@ window.__ModuleLoader__.load({
       )
     }
 
-    function FlowactAvatarView({ speak, useSession, startAsr }) {
-      const [state, setState] = useState({ status: 'loading', title: 'FlowAct 数字人', characters: [], error: '' })
+    function LiveAITalkView({ speak, useSession, startAsr }) {
+      const [state, setState] = useState({ status: 'loading', title: 'LiveAI Talk', characters: [], error: '' })
       const sessionId = useSession((snapshot) => snapshot.sessionId)
       const [asrState, setAsrState] = useState({ status: 'idle', text: '' })
       const [turnState, setTurnState] = useState(null)
@@ -197,7 +197,7 @@ window.__ModuleLoader__.load({
         let timer
         const poll = async () => {
           try {
-            const response = await fetch(`/flowact/turn/${encodeURIComponent(sessionId)}`)
+            const response = await fetch(`/liveai/turn/${encodeURIComponent(sessionId)}`)
             if (active && response.ok) setTurnState(await response.json())
           } catch {
             // The bridge may not have seen an assistant turn yet.
@@ -219,7 +219,7 @@ window.__ModuleLoader__.load({
             onResult: (text) => {
               setAsrState({ status: 'recognized', text })
               if (sessionId && text) {
-                fetch('/flowact/talk', {
+                fetch('/liveai/talk', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ sessionId, text }),
@@ -239,7 +239,7 @@ window.__ModuleLoader__.load({
 
       useEffect(() => {
         let active = true
-        fetch('/flowact/characters', { headers: { Accept: 'application/json' } })
+        fetch('/liveai/characters', { headers: { Accept: 'application/json' } })
           .then(async (response) => {
             if (!response.ok) throw new Error(`HTTP ${response.status}`)
             return response.json()
@@ -248,7 +248,7 @@ window.__ModuleLoader__.load({
             if (active) setState({ status: 'ready', title: payload.title, characters: payload.characters || [], error: '' })
           })
           .catch((error) => {
-            if (active) setState({ status: 'error', title: 'FlowAct 数字人', characters: [], error: String(error) })
+            if (active) setState({ status: 'error', title: 'LiveAI Talk', characters: [], error: String(error) })
           })
         return () => {
           active = false
@@ -297,30 +297,30 @@ window.__ModuleLoader__.load({
     function apply(ctx) {
       const tts = new ClientTtsRuntime()
       tts.register(browserTtsProvider)
-      ctx.provide('flowactTts', tts)
+      ctx.provide('liveaiTts', tts)
 
       const asr = new ClientAsrRuntime()
       asr.register(browserAsrProvider)
-      ctx.provide('flowactAsr', asr)
+      ctx.provide('liveaiAsr', asr)
 
       ctx.slots.inject('conversation.view', () =>
         ctx.slots.register(
           {
             name: 'conversation.view',
-            id: 'flowact-avatar',
+            id: 'liveai-talk',
             order: 20,
-            label: 'AI 数字人',
+            label: 'LiveAI Talk',
             inject: () => ({
               speak: (text) => tts.speak(text, { provider: 'auto' }),
               startAsr: (options) => asr.start(options),
             }),
-            registrant: 'dsh-flowact-avatar',
+            registrant: 'dsh-liveai-talk',
           },
-          FlowactAvatarView,
+          LiveAITalkView,
         ),
       )
     }
 
-    return { name: 'flowact-avatar', inject: ['slots'], apply }
+    return { name: 'liveai-talk', inject: ['slots'], apply }
   },
 })

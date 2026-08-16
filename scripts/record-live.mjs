@@ -1,5 +1,5 @@
 /**
- * Live recording harness for dsh-flowact-avatar.
+ * Live recording harness for dsh-liveai-talk.
  *
  * Prerequisites:
  *   - `DEEPSEEK_API_KEY` (and optionally the VOLC_* voice/video keys) in the
@@ -23,7 +23,7 @@ import process from 'node:process'
 const pluginRoot = resolve(new URL('..', import.meta.url).pathname)
 const dshRepo = resolve(process.env.DSH_REPO || join(pluginRoot, '..', '..', 'deepseek-harness'))
 const cli = join(dshRepo, 'apps', 'cli', 'lib', 'bin.js')
-const profile = 'flowact-record'
+const profile = 'liveai-record'
 
 const REQUIRED_KEYS = ['DEEPSEEK_API_KEY']
 
@@ -123,7 +123,7 @@ async function main() {
     process.exit(77)
   }
 
-  const root = mkdtempSync(join(tmpdir(), 'dsh-flowact-record-'))
+  const root = mkdtempSync(join(tmpdir(), 'dsh-liveai-record-'))
   const home = join(root, 'home')
   const recordings = join(pluginRoot, 'recordings')
   mkdirSync(recordings, { recursive: true })
@@ -149,7 +149,7 @@ async function main() {
     writeFileSync(profileManifestPath, `${JSON.stringify(profileManifest, null, 2)}\n`)
 
     // Seed one workspace so the browser can create a session without native pickers.
-    const workspaceDir = realpathSync(mkdtempSync(join(tmpdir(), 'flowact-record-ws-')))
+    const workspaceDir = realpathSync(mkdtempSync(join(tmpdir(), 'liveai-record-ws-')))
     const storagePath = join(home, 'storages', 'workspace.json')
     mkdirSync(join(home, 'storages'), { recursive: true })
     const now = new Date().toISOString()
@@ -165,7 +165,7 @@ async function main() {
       stdio: ['ignore', 'pipe', 'pipe'],
     })
     const base = `http://127.0.0.1:${webPort}`
-    await waitForJson(`${base}/flowact/health`)
+    await waitForJson(`${base}/liveai/health`)
 
     const playwright = await loadPlaywright()
     const browser = await playwright.chromium.launch({ headless: true })
@@ -211,9 +211,9 @@ async function main() {
     await input.press('Enter')
 
     // The dsh agent (user's DeepSeek key) must produce the tagged reply before
-    // the FlowAct bridge can publish an emotion summary.
+    // the LiveAI Talk bridge can publish an emotion summary.
     await page.waitForFunction(() => document.body.innerText.includes('数字人伙伴'), null, { timeout: 90_000 })
-    await page.getByRole('tab', { name: 'AI 数字人' }).click()
+    await page.getByRole('tab', { name: 'LiveAI Talk' }).click()
     await page.waitForFunction(() => document.body.innerText.includes('最新语义'), null, { timeout: 30_000 })
 
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-')

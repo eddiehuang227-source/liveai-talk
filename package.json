@@ -1,7 +1,7 @@
 {
-  "name": "dsh-flowact-avatar",
-  "version": "0.1.0",
-  "description": "FlowAct conversational character avatar as a DeepSeek Harness (dsh) bundle: a character-visualization core with pluggable ASR/TTS/avatar-media provider seams.",
+  "name": "dsh-liveai-talk",
+  "version": "0.2.0",
+  "description": "Animate any photo into a responsive virtual girl. She talks, turns, smiles, and moves naturally in sync with your conversation. Low-lag, high-detail.",
   "type": "module",
   "main": "lib/index.js",
   "exports": {
@@ -34,7 +34,7 @@
     "prepare": "node scripts/build.mjs",
     "test": "node scripts/build.mjs && node --test test/*.test.mjs",
     "test:integration": "node scripts/dsh-smoke-test.mjs",
-      "record:live": "node scripts/record-live.mjs"
+    "record:live": "node scripts/record-live.mjs"
   },
   "engines": {
     "node": ">=22.13.0"
@@ -42,9 +42,10 @@
   "keywords": [
     "dsh-plugin",
     "deepseek-harness",
-    "ai-avatar",
-    "digital-human",
+    "liveai-talk",
+    "virtual-girl",
     "conversational-ai",
+    "digital-human",
     "tts",
     "asr"
   ],

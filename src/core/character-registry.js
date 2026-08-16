@@ -1,5 +1,5 @@
 /**
- * CharacterRegistry — the character seam for FlowAct.
+ * CharacterRegistry — the character seam for LiveAI Talk.
  *
  * Service Definition (this package), Provider = built-in manifests or a future
  * character-pack plugin, Consumer = the dsh client avatar view and the

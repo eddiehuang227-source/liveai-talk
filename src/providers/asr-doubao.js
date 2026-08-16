@@ -1,5 +1,5 @@
 /**
- * `asr-doubao` — Doubao Seed ASR 2.0 streaming provider for the host FlowAct
+ * `asr-doubao` — Doubao Seed ASR 2.0 streaming provider for the host LiveAI Talk
  * ASR seam. Credentials are resolved per operation through dsh
  * `ctx.credentials`; the binary protocol is unit-tested in
  * `doubao-asr-codec.js`.
@@ -65,7 +65,7 @@ export function createDoubaoAsrProvider({ resolveCredential, WebSocketImpl = glo
     })
 
     try {
-      socket.send(makeAsrSessionStartFrame({ userId: appKey || 'flowact', sampleRate, requestId }))
+      socket.send(makeAsrSessionStartFrame({ userId: appKey || 'liveai', sampleRate, requestId }))
       const chunkSize = 3200 // 100 ms at 16 kHz mono int16
       for (let offset = 0; offset <= pcm.length; offset += chunkSize) {
         const end = Math.min(offset + chunkSize, pcm.length)

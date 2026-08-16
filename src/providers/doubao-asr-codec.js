@@ -60,9 +60,9 @@ export function makeAsrClientFrame(messageType, flags, serialization, payload) {
   return frame
 }
 
-export function makeAsrSessionStartFrame({ userId = 'flowact', sampleRate = 16_000, requestId = randomUUID() } = {}) {
+export function makeAsrSessionStartFrame({ userId = 'liveai', sampleRate = 16_000, requestId = randomUUID() } = {}) {
   return makeAsrClientFrame(0x1, 0x0, 0x1, {
-    user: { uid: userId || 'flowact' },
+    user: { uid: userId || 'liveai' },
     audio: { format: 'pcm', sample_rate: sampleRate, channel: 1, bits: 16 },
     request: {
       reqid: requestId,

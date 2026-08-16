@@ -6,12 +6,12 @@ const patch = readFileSync(new URL('../cordis.patch.yml', import.meta.url), 'utf
 
 test('bundle patch inserts the host/client row by package name', () => {
   assert.match(patch, /- insert:/)
-  assert.match(patch, /- id: flowact-avatar/)
-  assert.match(patch, /name: 'dsh-flowact-avatar'/)
+  assert.match(patch, /- id: liveai-talk/)
+  assert.match(patch, /name: 'dsh-liveai-talk'/)
 })
 
 test('bundle patch carries override-friendly configuration defaults', () => {
-  assert.match(patch, /title: 'FlowAct 数字人'/)
+  assert.match(patch, /title: 'LiveAI Talk'/)
   assert.match(patch, /defaultCharacter: 'chie'/)
   assert.match(patch, /providerPolicy:/)
   assert.match(patch, /tts: 'auto'/)

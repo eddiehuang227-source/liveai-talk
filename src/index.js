@@ -1,7 +1,7 @@
 /**
- * dsh-flowact-avatar host half.
+ * dsh-liveai-talk host half.
  *
- * Registers the three FlowAct capability seams and a tiny read-only HTTP
+ * Registers the three LiveAI Talk capability seams and a tiny read-only HTTP
  * surface consumed by the browser half. Every registration is a reversible
  * effect: unloading this plugin removes the routes and services it owns.
  */
@@ -18,13 +18,13 @@ import { createVolcRealtimeProvider, VolcRealtimeError } from './providers/realt
 import { createViduRealtimeProvider, ViduRealtimeError } from './providers/realtime-vidu.js'
 import { createJimengProvider, JimengVideoError } from './providers/video-jimeng.js'
 
-export const name = 'flowact-avatar'
+export const name = 'liveai-talk'
 
 /** Required dsh services, all provided by the base/web profiles. */
 export const inject = ['webServer', 'agents', 'credentials', 'jobs']
 
 const DEFAULT_CONFIG = Object.freeze({
-  title: 'FlowAct 数字人',
+  title: 'LiveAI Talk',
   defaultCharacter: 'chie',
   providerPolicy: Object.freeze({ tts: 'auto', asr: 'auto', avatarMedia: 'jimeng' }),
 })
@@ -39,7 +39,7 @@ const DEFAULT_CONFIG = Object.freeze({
 export const Config = Object.freeze({
   '~standard': Object.freeze({
     version: 1,
-    vendor: 'dsh-flowact-avatar',
+    vendor: 'dsh-liveai-talk',
     validate(value) {
       try {
         return { value: normalizeConfig(value) }
@@ -118,18 +118,18 @@ export function apply(ctx, rawConfig = {}) {
     },
   }
   const conversation = new ConversationBridge()
-  ctx.provide('flowactCharacters', characters)
-  ctx.provide('flowactSeams', seams)
-  ctx.provide('flowactConfig', config)
-  ctx.provide('flowactPipeline', pipeline)
-  ctx.provide('flowactConversation', conversation)
+  ctx.provide('liveaiCharacters', characters)
+  ctx.provide('liveaiSeams', seams)
+  ctx.provide('liveaiConfig', config)
+  ctx.provide('liveaiPipeline', pipeline)
+  ctx.provide('liveaiConversation', conversation)
 
   ctx.effect(() => {
     const disposeSessionEvents = ctx.on('session/event', (subject, event) => {
       conversation.handleSessionEvent(subject, event)
     })
 
-    const disposeJobController = ctx.jobs.attachController('flowact-video')
+    const disposeJobController = ctx.jobs.attachController('liveai-video')
 
     const disposeDoubaoTts = seams.tts.register(createDoubaoTtsProvider({
       resolveCredential: async (reference) => (await ctx.credentials.resolve(reference))?.value,
@@ -147,11 +147,11 @@ export function apply(ctx, rawConfig = {}) {
 
     const disposeHealth = ctx.webServer.register({
       kind: 'exact',
-      path: '/flowact/health',
+      path: '/liveai/health',
       handler: (_request, response) => {
         sendJson(response, 200, {
           ok: true,
-          plugin: 'dsh-flowact-avatar',
+          plugin: 'dsh-liveai-talk',
           module: name,
           version: '0.1.0',
           characters: characters.list().length,
@@ -164,7 +164,7 @@ export function apply(ctx, rawConfig = {}) {
 
     const disposeCharacters = ctx.webServer.register({
       kind: 'exact',
-      path: '/flowact/characters',
+      path: '/liveai/characters',
       handler: (_request, response) => {
         sendJson(response, 200, {
           title: config.title,
@@ -176,7 +176,7 @@ export function apply(ctx, rawConfig = {}) {
 
     const disposeSeams = ctx.webServer.register({
       kind: 'exact',
-      path: '/flowact/seams',
+      path: '/liveai/seams',
       handler: (_request, response) => {
         sendJson(response, 200, {
           seams: Object.fromEntries(
@@ -194,7 +194,7 @@ export function apply(ctx, rawConfig = {}) {
 
     const disposeAssets = ctx.webServer.register({
       kind: 'prefix',
-      path: '/flowact/assets',
+      path: '/liveai/assets',
       handler: (_request, response) => {
         sendText(response, 200, 'image/svg+xml', ASSET_SVG)
       },
@@ -202,7 +202,7 @@ export function apply(ctx, rawConfig = {}) {
 
     const disposePipelineMeta = ctx.webServer.register({
       kind: 'exact',
-      path: '/flowact/pipeline',
+      path: '/liveai/pipeline',
       handler: (_request, response) => {
         sendJson(response, 200, {
           events: ['status', 'delta', 'sentence', 'emotion', 'done', 'aborted'],
@@ -215,7 +215,7 @@ export function apply(ctx, rawConfig = {}) {
 
     const disposeAnalyze = ctx.webServer.register({
       kind: 'exact',
-      path: '/flowact/analyze',
+      path: '/liveai/analyze',
       handler: async (request, response) => {
         try {
           const body = await readJsonBody(request)
@@ -233,7 +233,7 @@ export function apply(ctx, rawConfig = {}) {
 
     const disposeTalk = ctx.webServer.register({
       kind: 'exact',
-      path: '/flowact/talk',
+      path: '/liveai/talk',
       handler: async (request, response) => {
         try {
           const body = await readJsonBody(request)
@@ -259,13 +259,13 @@ export function apply(ctx, rawConfig = {}) {
 
     const disposeTurn = ctx.webServer.register({
       kind: 'prefix',
-      path: '/flowact/turn',
+      path: '/liveai/turn',
       handler: (request, response) => {
         const url = new URL(request.url || '/', 'http://127.0.0.1')
-        const sessionId = decodeURIComponent(url.pathname.slice('/flowact/turn/'.length))
+        const sessionId = decodeURIComponent(url.pathname.slice('/liveai/turn/'.length))
         const latest = sessionId ? conversation.latest(sessionId) : null
         if (!latest) {
-          sendJson(response, 404, { error: 'no FlowAct turn for this session' })
+          sendJson(response, 404, { error: 'no LiveAI Talk turn for this session' })
           return
         }
         sendJson(response, 200, { sessionId, ...latest })
@@ -276,15 +276,15 @@ export function apply(ctx, rawConfig = {}) {
 
     const disposeVideoSubmit = ctx.webServer.register({
       kind: 'exact',
-      path: '/flowact/video/submit',
+      path: '/liveai/video/submit',
       handler: async (request, response) => {
         try {
           const body = await readJsonBody(request)
           const provider = resolveMediaProvider()
           const owner = typeof body.sessionId === 'string' ? ctx.agents.get(body.sessionId) || undefined : undefined
           const jobId = ctx.jobs.start({
-            kind: 'flowact-video',
-            label: `FlowAct 视频生成 · ${String(body.dialogue || '').slice(0, 24)}`,
+            kind: 'liveai-video',
+            label: `LiveAI Talk 视频生成 · ${String(body.dialogue || '').slice(0, 24)}`,
             ...(owner ? { owner } : {}),
             run: () => createVideoJobHooks({ provider, input: body }),
           })
@@ -302,7 +302,7 @@ export function apply(ctx, rawConfig = {}) {
 
     const disposeVideoStatus = ctx.webServer.register({
       kind: 'exact',
-      path: '/flowact/video/status',
+      path: '/liveai/video/status',
       handler: async (request, response) => {
         try {
           const body = await readJsonBody(request)
@@ -324,7 +324,7 @@ export function apply(ctx, rawConfig = {}) {
 
     const disposeVolcToken = ctx.webServer.register({
       kind: 'exact',
-      path: '/flowact/realtime/volc-token',
+      path: '/liveai/realtime/volc-token',
       handler: async (request, response) => {
         try {
           const url = new URL(request.url || '/', 'http://127.0.0.1')
@@ -344,7 +344,7 @@ export function apply(ctx, rawConfig = {}) {
 
     const disposeViduSession = ctx.webServer.register({
       kind: 'exact',
-      path: '/flowact/realtime/vidu/session',
+      path: '/liveai/realtime/vidu/session',
       handler: async (request, response) => {
         try {
           const body = await readJsonBody(request)
@@ -383,7 +383,7 @@ export function apply(ctx, rawConfig = {}) {
       disposeSessionEvents()
       disposeJobController()
     }
-  }, 'flowact-avatar: http surface')
+  }, 'liveai-talk: http surface')
 }
 
 /**
@@ -402,6 +402,6 @@ const ASSET_SVG = [
   '<circle cx="190" cy="270" r="10" fill="#3a2d57"/><circle cx="290" cy="270" r="10" fill="#3a2d57"/>',
   '<path d="M216 320 Q240 340 264 320" stroke="#c46a6a" stroke-width="8" fill="none" stroke-linecap="round"/>',
   '<path d="M150 440 Q240 500 330 440 L330 600 L150 600 Z" fill="#f7f3ff"/>',
-  '<text x="240" y="620" text-anchor="middle" font-family="sans-serif" font-size="24" fill="#fff">FlowAct</text>',
+  '<text x="240" y="620" text-anchor="middle" font-family="sans-serif" font-size="24" fill="#fff">LiveAI Talk</text>',
   '</svg>',
 ].join('')

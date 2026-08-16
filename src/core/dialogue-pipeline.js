@@ -1,5 +1,5 @@
 /**
- * DialoguePipeline — the provider-independent heart of FlowAct.
+ * DialoguePipeline — the provider-independent heart of LiveAI Talk.
  *
  * This is the AItalk streaming coordinator extracted from its WebSocket and
  * vendor code: LLM deltas enter, sentence-aligned stage events leave. Every
