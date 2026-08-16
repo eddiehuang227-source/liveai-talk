@@ -1,6 +1,6 @@
 # 路线图 / Roadmap
 
-当前状态：**核心目标完成** —— 可安装、可显示人物的 dsh bundle；三层结构（插件壳/core/provider seam）齐备；host/client 双侧、人物/provider registry、Standard Schema 配置、`DialoguePipeline` + `ConversationBridge`、`asr-doubao`/`tts-doubao`/`browser-tts`/`browser-speech`/`jimeng`/`realtime-volc`/`realtime-vidu`、`ctx.jobs` 视频任务；72 个单元测试与真实 dsh 安装冒烟测试。
+当前状态：**核心目标完成，GitHub 已发布，上游提案已提交；npm 与真实 Key 录制等待凭据** —— 可安装、可显示人物的 dsh bundle；三层结构（插件壳/core/provider seam）齐备；host/client 双侧、人物/provider registry、Standard Schema 配置、`DialoguePipeline` + `ConversationBridge`、`asr-doubao`/`tts-doubao`/`browser-tts`/`browser-speech`/`jimeng`/`realtime-volc`/`realtime-vidu`、`ctx.jobs` 视频任务；72 个单元测试与真实 dsh 安装冒烟测试。
 
 ## M1 已完成（本轮）
 
@@ -39,6 +39,13 @@
 
 - [x] 人物素材授权清理：插件不打包 AItalk 授权素材，占位图为代码生成 SVG（`ASSET-LICENSE.md`）
 - [x] 仓库 topic `dsh-plugin` 与安装命令写入 README/PUBLISHING；npm pack 与 tarball 安装路径已实测
+
+## 发布与上游状态
+
+- [x] GitHub：`https://github.com/eddiehuang227-source/dsh-flowact-avatar`（public，topics 含 `dsh-plugin`，tag `v0.1.0`）
+- [ ] npm：`npm publish --dry-run` 通过；真实发布被 registry 认证阻断（`ENEEDAUTH`，执行 `npm adduser` 后可直接发布）
+- [x] 上游提案：deepseek-harness Discussion **#2431**（Ideas：standard ASR/TTS/avatar-media seams）
+- [x] 录制工具：`npm run record:live`；无 Key 时以 exit 77 清晰失败（当前环境未配置 `DEEPSEEK_API_KEY`，实际录制待用户提供 Key）
 
 ## 后续增强（不阻塞本目标验收）
 
