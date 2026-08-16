@@ -17,7 +17,7 @@ Animate any photo into a responsive virtual girl. She talks, turns, smiles, and 
 ## 安装（当前 dsh 0.1.0-rc.5 验证）
 
 ```sh
-dsh plugin --profile avatar add /path/to/dsh-liveai-talk
+dsh plugin --profile avatar add /path/to/liveai-talk
 dsh --profile avatar --dump-config   # 应看到 liveai-talk 行
 dsh --profile avatar web
 ```
