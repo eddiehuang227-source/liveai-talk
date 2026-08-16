@@ -34,8 +34,14 @@ function loadClient(options = {}) {
     useEffect: () => undefined,
     useState: (initial) => [initial, () => undefined],
   }
+  const primitives = {
+    Button: () => ({}),
+    Input: () => ({}),
+    StateDot: () => ({}),
+  }
   const exports = handoff.factory((specifier) => {
     if (specifier === 'react') return react
+    if (specifier === '@deepseek-ai/dsh-client-ui-primitives') return primitives
     throw new Error(`unexpected external require: ${specifier}`)
   })
   return { handoff, exports, sandbox, spoken }

@@ -181,7 +181,7 @@ export function apply(ctx, rawConfig = {}) {
           ok: true,
           plugin: 'dsh-live-talk',
           module: name,
-          version: '0.4.0',
+          version: '0.5.0',
           characters: characters.list().length,
           seams: Object.fromEntries(
             Object.entries(SEAMS).map(([key, seam]) => [key, { capability: seam.capability, providers: seams[key].list().length }]),
@@ -264,6 +264,52 @@ export function apply(ctx, rawConfig = {}) {
           ),
           credentials,
         })
+      },
+    })
+
+
+    const SETTABLE_CREDENTIALS = [
+      'VOLC_APP_ID',
+      'VOLC_ACCESS_TOKEN',
+      'VOLC_ASR_API_KEY',
+      'VOLC_ASR_APP_ID',
+      'VOLC_ASR_ACCESS_TOKEN',
+      'VOLCENGINE_ACCESS_KEY_ID',
+      'VOLCENGINE_SECRET_ACCESS_KEY',
+    ]
+
+    const disposeSettings = ctx.webServer.register({
+      kind: 'exact',
+      path: '/live/settings',
+      handler: async (request, response) => {
+        if (request.method === 'GET') {
+          const configured = {}
+          for (const ref of SETTABLE_CREDENTIALS) {
+            try {
+              configured[ref] = (await ctx.credentials.describe(ref)).configured
+            } catch {
+              configured[ref] = false
+            }
+          }
+          sendJson(response, 200, { fields: configured })
+          return
+        }
+        if (request.method === 'PUT') {
+          try {
+            const body = await readJsonBody(request)
+            const values = body.values && typeof body.values === 'object' ? body.values : {}
+            for (const ref of SETTABLE_CREDENTIALS) {
+              const value = typeof values[ref] === 'string' ? values[ref].trim() : ''
+              if (value) await ctx.credentials.set(ref, value)
+              else await ctx.credentials.unset(ref).catch(() => {})
+            }
+            sendJson(response, 200, { saved: true })
+          } catch (error) {
+            sendJson(response, 400, { error: error instanceof Error ? error.message : String(error) })
+          }
+          return
+        }
+        sendJson(response, 405, { error: 'method not allowed' })
       },
     })
 
@@ -486,6 +532,7 @@ export function apply(ctx, rawConfig = {}) {
       disposeTts()
       disposeCapabilities()
       disposeVoices()
+      disposeSettings()
       disposeAssets()
       disposeSeams()
       disposeCharacters()

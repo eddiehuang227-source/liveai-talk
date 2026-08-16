@@ -1,6 +1,6 @@
 {
   "name": "dsh-live-talk",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Animate any photo into a responsive virtual girl. She talks, turns, smiles, and moves naturally in sync with your conversation. Low-lag, high-detail.",
   "type": "module",
   "main": "lib/index.js",

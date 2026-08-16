@@ -54,6 +54,8 @@ function fakeContext(options = {}) {
         return value === undefined ? undefined : { value }
       },
       describe: async (reference) => ({ configured: options.credentials?.[reference] !== undefined }),
+        set: async () => undefined,
+        unset: async () => undefined,
     },
     jobs: {
       attachController: () => () => {},
@@ -309,7 +311,7 @@ test('doubao tts route reports missing credentials before streaming', async () =
 test('unloading the host half disposes every registered route', () => {
   const { ctx, routes, disposers } = fakeContext()
   apply(ctx, {})
-  assert.equal(routes.size, 15)
+  assert.equal(routes.size, 16)
   for (const dispose of disposers) dispose()
   assert.equal(routes.size, 0)
 })

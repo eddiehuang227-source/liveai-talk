@@ -15,6 +15,7 @@ window.__ModuleLoader__.load({
   factory: (require) => {
     const React = require('react')
     const { createElement, useEffect, useState } = React
+    const { Button, Input, StateDot } = require('@deepseek-ai/dsh-client-ui-primitives')
     let activeAsrHandle = null
 
     /** Small client-side TTS seam: providers are replaceable without touching the view. */
@@ -207,6 +208,9 @@ window.__ModuleLoader__.load({
       const [videoText, setVideoText] = useState('')
       const [videoStatus, setVideoStatus] = useState('')
       const [realtimeStatus, setRealtimeStatus] = useState('')
+      const [showSettings, setShowSettings] = useState(false)
+      const [settingsDraft, setSettingsDraft] = useState({})
+      const [settingsStatus, setSettingsStatus] = useState('')
       const sessionId = useSession((snapshot) => snapshot.sessionId)
       const [asrState, setAsrState] = useState({ status: 'idle', text: '' })
       const [turnState, setTurnState] = useState(null)
@@ -354,6 +358,29 @@ window.__ModuleLoader__.load({
         }
       }
 
+      async function saveSettings() {
+        setSettingsStatus('正在保存到 dsh 凭据库…')
+        try {
+          const response = await fetch('/live/settings', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ values: settingsDraft }),
+          })
+          const body = await response.json()
+          if (!response.ok) throw new Error(body.error || `HTTP ${response.status}`)
+          setSettingsStatus('已保存到 dsh 凭据库。')
+          setShowSettings(false)
+          const capsResponse = await fetch('/live/capabilities', { headers: { Accept: 'application/json' } })
+          if (capsResponse.ok) {
+            const payload = await capsResponse.json()
+            setCaps({ providers: payload.providers || {}, credentials: payload.credentials || {} })
+          }
+        } catch (error) {
+          setSettingsStatus(error instanceof Error ? error.message : String(error))
+        }
+      }
+
+
       if (state.status === 'loading') {
         return createElement('div', { style: VIEW_STYLE }, createElement('p', null, '正在读取 Live Talk 工作台…'))
       }
@@ -387,9 +414,9 @@ window.__ModuleLoader__.load({
         createElement(
           'div',
           { style: MODE_BAR_STYLE },
-          createElement('button', { type: 'button', style: { ...MODE_BUTTON_STYLE, fontWeight: mode === 'voice' ? 700 : 400 }, onClick: () => setMode('voice') }, '语音对话'),
-          createElement('button', { type: 'button', style: { ...MODE_BUTTON_STYLE, fontWeight: mode === 'video' ? 700 : 400 }, onClick: () => setMode('video') }, '视频生成'),
-          createElement('button', { type: 'button', style: { ...MODE_BUTTON_STYLE, fontWeight: mode === 'realtime' ? 700 : 400 }, onClick: () => setMode('realtime') }, '实时数字人'),
+          createElement(Button, { type: 'button', style: { ...MODE_BUTTON_STYLE, fontWeight: mode === 'voice' ? 700 : 400 }, onClick: () => setMode('voice') }, '语音对话'),
+          createElement(Button, { type: 'button', style: { ...MODE_BUTTON_STYLE, fontWeight: mode === 'video' ? 700 : 400 }, onClick: () => setMode('video') }, '视频生成'),
+          createElement(Button, { type: 'button', style: { ...MODE_BUTTON_STYLE, fontWeight: mode === 'realtime' ? 700 : 400 }, onClick: () => setMode('realtime') }, '实时数字人'),
         ),
         mode === 'voice'
           ? createElement(
@@ -406,7 +433,7 @@ window.__ModuleLoader__.load({
               createElement(
                 'div',
                 { style: { display: 'flex', gap: '8px', alignItems: 'center' } },
-                createElement('button', { type: 'button', onClick: startVoiceInput }, '语音输入'),
+                createElement(Button, { type: 'button', onClick: startVoiceInput }, '语音输入'),
                 createElement('small', { style: { opacity: 0.8 } },
                   asrState.status === 'recognized'
                     ? `识别结果：${asrState.text}`
@@ -427,7 +454,7 @@ window.__ModuleLoader__.load({
               { style: PANEL_STYLE },
               createElement('strong', null, '即梦视频生成（火山引擎）'),
               createElement('label', { style: FIELD_STYLE }, createElement('span', null, '对话文本'), createElement('textarea', { rows: 3, value: videoText, onChange: (event) => setVideoText(event.target.value), placeholder: '输入一句角色要说的台词' })),
-              createElement('button', { type: 'button', onClick: submitVideo, style: { alignSelf: 'flex-start' } }, '提交视频生成'),
+              createElement(Button, { type: 'button', onClick: submitVideo, style: { alignSelf: 'flex-start' } }, '提交视频生成'),
               createElement('small', { style: { opacity: 0.75 } }, volcVisualReady ? '火山引擎访问密钥已配置。' : '未配置火山引擎访问密钥，提交后任务会在 dsh jobs 中记录失败原因。'),
               videoStatus ? createElement('small', null, videoStatus) : null,
             )
@@ -437,8 +464,8 @@ window.__ModuleLoader__.load({
               'div',
               { style: PANEL_STYLE },
               createElement('strong', null, '实时数字人通道'),
-              createElement('button', { type: 'button', onClick: createVolcToken, style: { alignSelf: 'flex-start' } }, '获取火山实时数字人凭证'),
-              createElement('button', { type: 'button', onClick: createViduSession, style: { alignSelf: 'flex-start' } }, '创建 Vidu S1 实时会话'),
+              createElement(Button, { type: 'button', onClick: createVolcToken, style: { alignSelf: 'flex-start' } }, '获取火山实时数字人凭证'),
+              createElement(Button, { type: 'button', onClick: createViduSession, style: { alignSelf: 'flex-start' } }, '创建 Vidu S1 实时会话'),
               createElement('small', { style: { opacity: 0.75 } }, '火山 SDK 令牌有效期 14 分钟；Vidu Key 由你的本机 18088 代理持有。'),
               realtimeStatus ? createElement('small', null, realtimeStatus) : null,
             )
@@ -449,6 +476,40 @@ window.__ModuleLoader__.load({
           createElement('strong', null, '能力状态'),
           providerCards.length > 0 ? providerCards : createElement('small', null, '正在读取 provider 能力…'),
           createElement('small', { style: { opacity: 0.75 } }, `豆包语音：${volcTtsReady ? '已配置' : '未配置'} · 火山视觉/实时：${volcVisualReady ? '已配置' : '未配置'}`),
+        ),
+        createElement(
+          'div',
+          { style: PANEL_STYLE },
+          createElement('strong', null, '豆包 / 火山密钥配置'),
+          createElement('small', { style: { opacity: 0.75 } }, '保存到 dsh 凭据库（ctx.credentials），不会进入仓库或页面代码。大模型请在 dsh 设置 → Models 选择。'),
+          createElement(Button, { type: 'button', onClick: () => setShowSettings((value) => !value), style: { alignSelf: 'flex-start' } }, showSettings ? '收起配置' : '展开配置'),
+          showSettings
+            ? createElement(
+                'div',
+                { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '10px' } },
+                ...[
+                  ['VOLC_APP_ID', '豆包 App ID', false],
+                  ['VOLC_ACCESS_TOKEN', '豆包 Access Token', true],
+                  ['VOLCENGINE_ACCESS_KEY_ID', '火山 Access Key ID', false],
+                  ['VOLCENGINE_SECRET_ACCESS_KEY', '火山 Secret Access Key', true],
+                ].map(([key, label, secret]) =>
+                  createElement(
+                    'label',
+                    { key, style: FIELD_STYLE },
+                    createElement('span', null, `${label} ${caps.credentials[key] ? '· 已配置' : ''}`),
+                    createElement(Input, {
+                      type: secret ? 'password' : 'text',
+                      autoComplete: 'off',
+                      placeholder: secret ? '仅修改时填写' : label,
+                      value: settingsDraft[key] || '',
+                      onChange: (event) => setSettingsDraft((current) => ({ ...current, [key]: event.target.value })),
+                    }),
+                  ),
+                ),
+                createElement(Button, { type: 'button', onClick: saveSettings, style: { alignSelf: 'end' } }, '保存密钥'),
+              )
+            : null,
+          settingsStatus ? createElement('small', null, settingsStatus) : null,
         ),
         createElement(
           'div',
