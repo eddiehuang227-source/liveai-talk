@@ -42,7 +42,7 @@
 
 ## 发布与上游状态
 
-- [x] GitHub：`https://github.com/eddiehuang227-source/dsh-flowact-avatar`（public，topics 含 `dsh-plugin`，tag `v0.1.0`）
+- [x] GitHub：`https://github.com/eddiehuang227-source/dsh-flowact-avatar`（public，topics 含 `dsh-plugin`，tag `v0.1.0`，Release 附 `dsh-flowact-avatar-0.1.0.tgz`）
 - [ ] npm：`npm publish --dry-run` 通过；真实发布被 registry 认证阻断（`ENEEDAUTH`，执行 `npm adduser` 后可直接发布）
 - [x] 上游提案：deepseek-harness Discussion **#2431**（Ideas：standard ASR/TTS/avatar-media seams）
 - [x] 真实录制：从 `.hermes/.env.bak` 注入 `DEEPSEEK_API_KEY` 后 `record:live` 成功——DeepSeek 回复 `[emotion: happy] 你好，我是你的数字人伙伴。`，浏览器“最新语义”渲染 happy，截图与 JSON 证据在 `recordings/`
