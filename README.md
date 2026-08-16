@@ -40,7 +40,7 @@ npm run test:integration   # 需要 DSH_REPO 指向 deepseek-harness 源码
 
 - 仓库添加 topic：`dsh-plugin`；
 - npm：`npm publish`（`lib/` 已预构建）；
-- tarball：`npm pack`，用户 `dsh plugin add ./dsh-live-talk-0.2.0.tgz`；
+- tarball：`npm pack`，用户 `dsh plugin add ./dsh-live-talk-0.3.0.tgz`；
 - 密钥类 provider 一律走 dsh `ctx.credentials`，不在 patch 或配置中携带；
 - 完整清单见 [PUBLISHING.md](PUBLISHING.md)；素材边界见 [ASSET-LICENSE.md](ASSET-LICENSE.md)。
 
