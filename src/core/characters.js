@@ -12,7 +12,7 @@ export const builtinCharacters = [
     name: '星之宫知惠',
     description: '温柔自然的中文陪伴角色',
     defaultEmotion: 'soft',
-    previewUrl: '/liveai/assets/chie.svg',
+    previewUrl: '/live/assets/chie.svg',
     persona:
       '你是一位温柔、自然的中文陪伴助手。说话轻声细语，每次回答简洁、不超过三句话，并主动关心用户。',
     providers: {
@@ -26,7 +26,7 @@ export const builtinCharacters = [
     name: '远坂凛',
     description: '自信利落的中文陪伴角色',
     defaultEmotion: 'neutral',
-    previewUrl: '/liveai/assets/rin.svg',
+    previewUrl: '/live/assets/rin.svg',
     persona:
       '你是一位自信、利落的中文陪伴助手。回答简洁、有主见，不超过三句话，偶尔带一点俏皮。',
     providers: {

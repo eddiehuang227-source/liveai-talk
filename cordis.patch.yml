@@ -1,15 +1,15 @@
-# dsh-liveai-talk bundle patch.
+# dsh-live-talk bundle patch.
 #
 # The bundle is applied after @deepseek-ai/dsh-base and (for web profiles)
-# @deepseek-ai/dsh-web-app, so this insert only adds the LiveAI Talk host/client
+# @deepseek-ai/dsh-web-app, so this insert only adds the Live Talk host/client
 # plugin row. Users can override the whole row config in their own
 # $DSH_HOME/profiles/<name>/cordis.patch.yml or $DSH_HOME/cordis.patch.yml;
 # later layers win per row.
 - insert:
-    - id: liveai-talk
-      name: 'dsh-liveai-talk'
+    - id: live-talk
+      name: 'dsh-live-talk'
       config:
-        title: 'LiveAI Talk'
+        title: 'Live Talk'
         defaultCharacter: 'chie'
         providerPolicy:
           tts: 'auto'

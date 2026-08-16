@@ -14,7 +14,7 @@ import process from 'node:process'
 const pluginRoot = resolve(new URL('..', import.meta.url).pathname)
 const dshRepo = resolve(process.env.DSH_REPO || join(pluginRoot, '..', '..', 'deepseek-harness'))
 const cli = join(dshRepo, 'apps', 'cli', 'lib', 'bin.js')
-const profile = 'liveai-it'
+const profile = 'live-it'
 
 function run(command, args, options = {}) {
   return spawnSync(command, args, {
@@ -68,7 +68,7 @@ async function waitForJson(url, timeoutMs = 90_000) {
 }
 
 async function main() {
-  const root = mkdtempSync(join(tmpdir(), 'dsh-liveai-talk-it-'))
+  const root = mkdtempSync(join(tmpdir(), 'dsh-live-talk-it-'))
   const home = join(root, 'home')
 
   requireOk(run(process.execPath, ['scripts/build.mjs'], { cwd: pluginRoot }), 'build')
@@ -94,8 +94,8 @@ async function main() {
 
   const dump = run(process.execPath, [cli, '--profile', profile, '--dump-config'], { env: { DSH_HOME: home } })
   requireOk(dump, 'dsh --dump-config')
-  if (dump.stdout.includes('liveai-talk') === false) {
-    throw new Error(`dump-config does not contain liveai-talk:\n${dump.stdout}`)
+  if (dump.stdout.includes('live-talk') === false) {
+    throw new Error(`dump-config does not contain live-talk:\n${dump.stdout}`)
   }
 
   const webPort = await freePort()
@@ -108,25 +108,25 @@ async function main() {
 
   try {
     const base = `http://127.0.0.1:${webPort}`
-    const health = await waitForJson(`${base}/liveai/health`)
-    if (health.plugin !== 'dsh-liveai-talk') {
+    const health = await waitForJson(`${base}/live/health`)
+    if (health.plugin !== 'dsh-live-talk') {
       throw new Error(`unexpected health payload: ${JSON.stringify(health)}`)
     }
     if (health.seams?.asr?.capability !== 'asr' || health.seams?.tts?.capability !== 'tts') {
       throw new Error(`unexpected seam metadata: ${JSON.stringify(health.seams)}`)
     }
 
-    const characters = await waitForJson(`${base}/liveai/characters`)
+    const characters = await waitForJson(`${base}/live/characters`)
     if (characters.characters.some((character) => character.id === 'chie') === false) {
       throw new Error(`chie is missing from ${JSON.stringify(characters)}`)
     }
 
-    const pipelineMeta = await waitForJson(`${base}/liveai/pipeline`)
+    const pipelineMeta = await waitForJson(`${base}/live/pipeline`)
     if (pipelineMeta.capabilities.includes('emotion-parse') === false) {
       throw new Error(`pipeline metadata is incomplete: ${JSON.stringify(pipelineMeta)}`)
     }
 
-    const seams = await waitForJson(`${base}/liveai/seams`)
+    const seams = await waitForJson(`${base}/live/seams`)
     if (seams.seams.asr.providers.some((provider) => provider.id === 'doubao') === false) {
       throw new Error(`doubao ASR provider is not registered: ${JSON.stringify(seams.seams.asr)}`)
     }
@@ -142,7 +142,7 @@ async function main() {
       }
     }
 
-    const analyzeResponse = await fetch(`${base}/liveai/analyze`, {
+    const analyzeResponse = await fetch(`${base}/live/analyze`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text: '[emotion: happy][action: wave] 太好了，我们出发吧。' }),
@@ -153,7 +153,7 @@ async function main() {
       throw new Error(`unexpected pipeline analysis: ${JSON.stringify(analysis)}`)
     }
 
-    const talkResponse = await fetch(`${base}/liveai/talk`, {
+    const talkResponse = await fetch(`${base}/live/talk`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sessionId: 'missing-session', text: '你好' }),
@@ -161,21 +161,21 @@ async function main() {
     if (talkResponse.status !== 404) {
       throw new Error(`talk endpoint should reject unknown agents, got HTTP ${talkResponse.status}`)
     }
-    const videoResponse = await fetch(`${base}/liveai/video/submit`, {
+    const videoResponse = await fetch(`${base}/live/video/submit`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ dialogue: '你好' }),
     })
     const videoBody = await videoResponse.json()
-    if (videoResponse.status !== 202 || videoBody.accepted !== true || /^liveai-video-\d+$/.test(videoBody.jobId) === false) {
+    if (videoResponse.status !== 202 || videoBody.accepted !== true || /^live-video-\d+$/.test(videoBody.jobId) === false) {
       throw new Error(`video submit should be accepted as a ctx.jobs job, got HTTP ${videoResponse.status}: ${JSON.stringify(videoBody)}`)
     }
 
-    const tokenResponse = await fetch(`${base}/liveai/realtime/volc-token?characterId=chie`)
+    const tokenResponse = await fetch(`${base}/live/realtime/volc-token?characterId=chie`)
     if (tokenResponse.status !== 503) {
       throw new Error(`volc realtime token should report missing credentials, got HTTP ${tokenResponse.status}`)
     }
-    const viduResponse = await fetch(`${base}/liveai/realtime/vidu/session`, {
+    const viduResponse = await fetch(`${base}/live/realtime/vidu/session`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ characterId: 'chie' }),
@@ -183,12 +183,12 @@ async function main() {
     if (viduResponse.status !== 502 && viduResponse.status !== 503) {
       throw new Error(`vidu session without proxy should fail closed, got HTTP ${viduResponse.status}`)
     }
-    const turnResponse = await fetch(`${base}/liveai/turn/missing-session`)
+    const turnResponse = await fetch(`${base}/live/turn/missing-session`)
     if (turnResponse.status !== 404) {
       throw new Error(`turn endpoint should reject unknown sessions, got HTTP ${turnResponse.status}`)
     }
 
-    const clientResponse = await fetch(`${base}/plugins/dsh-liveai-talk/client.js`)
+    const clientResponse = await fetch(`${base}/plugins/dsh-live-talk/client.js`)
     if (clientResponse.ok === false) throw new Error(`client bundle HTTP ${clientResponse.status}`)
     const clientSource = await clientResponse.text()
     if (clientSource.includes('window.__ModuleLoader__.load') === false) {
@@ -203,8 +203,8 @@ async function main() {
 
     const indexResponse = await fetch(base)
     const html = await indexResponse.text()
-    if (html.includes('dsh-liveai-talk') === false) {
-      throw new Error('boot manifest does not include dsh-liveai-talk')
+    if (html.includes('dsh-live-talk') === false) {
+      throw new Error('boot manifest does not include dsh-live-talk')
     }
 
     process.stdout.write(

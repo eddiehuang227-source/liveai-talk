@@ -1,5 +1,5 @@
 /**
- * ProviderRegistry — the reusable seam shape for LiveAI Talk capabilities.
+ * ProviderRegistry — the reusable seam shape for Live Talk capabilities.
  *
  * One registry instance owns one capability namespace (`asr`, `tts`,
  * `avatar-media`, ...). Provider selection deliberately does not depend on

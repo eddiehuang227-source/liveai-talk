@@ -1,5 +1,5 @@
 /**
- * VideoJobRunner — adapts a LiveAI Talk avatar-media provider to the dsh
+ * VideoJobRunner — adapts a Live Talk avatar-media provider to the dsh
  * `ctx.jobs` contract.
  *
  * The provider owns the vendor protocol (submit/query); this module owns the

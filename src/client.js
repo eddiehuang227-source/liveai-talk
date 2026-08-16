@@ -1,17 +1,17 @@
 /**
- * dsh-liveai-talk browser half.
+ * dsh-live-talk browser half.
  *
  * This file is the dsh client-bundle format: a lazy CJS factory registered
  * with `window.__ModuleLoader__.load`. Only platform modules (`react`) are
  * required; the component reaches the host half through the ordinary HTTP
- * route `/liveai/characters`.
+ * route `/live/characters`.
  *
  * UI contribution follows dsh slot discipline: one `conversation.view` entry,
  * registered inside `ctx.slots.inject(...)` so the registration waits for the
  * slot declaration and is removed when this plugin unloads.
  */
 window.__ModuleLoader__.load({
-  id: 'dsh-liveai-talk',
+  id: 'dsh-live-talk',
   factory: (require) => {
     const React = require('react')
     const { createElement, useEffect, useState } = React
@@ -75,7 +75,7 @@ window.__ModuleLoader__.load({
       },
     }
 
-      /** Client-side ASR seam mirroring the host `liveaiSeams.asr` registry. */
+      /** Client-side ASR seam mirroring the host `liveSeams.asr` registry. */
       class ClientAsrRuntime {
         constructor() {
           this.providers = new Map()
@@ -185,8 +185,8 @@ window.__ModuleLoader__.load({
       )
     }
 
-    function LiveAITalkView({ speak, useSession, startAsr }) {
-      const [state, setState] = useState({ status: 'loading', title: 'LiveAI Talk', characters: [], error: '' })
+    function LiveTalkView({ speak, useSession, startAsr }) {
+      const [state, setState] = useState({ status: 'loading', title: 'Live Talk', characters: [], error: '' })
       const sessionId = useSession((snapshot) => snapshot.sessionId)
       const [asrState, setAsrState] = useState({ status: 'idle', text: '' })
       const [turnState, setTurnState] = useState(null)
@@ -197,7 +197,7 @@ window.__ModuleLoader__.load({
         let timer
         const poll = async () => {
           try {
-            const response = await fetch(`/liveai/turn/${encodeURIComponent(sessionId)}`)
+            const response = await fetch(`/live/turn/${encodeURIComponent(sessionId)}`)
             if (active && response.ok) setTurnState(await response.json())
           } catch {
             // The bridge may not have seen an assistant turn yet.
@@ -219,7 +219,7 @@ window.__ModuleLoader__.load({
             onResult: (text) => {
               setAsrState({ status: 'recognized', text })
               if (sessionId && text) {
-                fetch('/liveai/talk', {
+                fetch('/live/talk', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ sessionId, text }),
@@ -239,7 +239,7 @@ window.__ModuleLoader__.load({
 
       useEffect(() => {
         let active = true
-        fetch('/liveai/characters', { headers: { Accept: 'application/json' } })
+        fetch('/live/characters', { headers: { Accept: 'application/json' } })
           .then(async (response) => {
             if (!response.ok) throw new Error(`HTTP ${response.status}`)
             return response.json()
@@ -248,7 +248,7 @@ window.__ModuleLoader__.load({
             if (active) setState({ status: 'ready', title: payload.title, characters: payload.characters || [], error: '' })
           })
           .catch((error) => {
-            if (active) setState({ status: 'error', title: 'LiveAI Talk', characters: [], error: String(error) })
+            if (active) setState({ status: 'error', title: 'Live Talk', characters: [], error: String(error) })
           })
         return () => {
           active = false
@@ -297,30 +297,30 @@ window.__ModuleLoader__.load({
     function apply(ctx) {
       const tts = new ClientTtsRuntime()
       tts.register(browserTtsProvider)
-      ctx.provide('liveaiTts', tts)
+      ctx.provide('liveTts', tts)
 
       const asr = new ClientAsrRuntime()
       asr.register(browserAsrProvider)
-      ctx.provide('liveaiAsr', asr)
+      ctx.provide('liveAsr', asr)
 
       ctx.slots.inject('conversation.view', () =>
         ctx.slots.register(
           {
             name: 'conversation.view',
-            id: 'liveai-talk',
+            id: 'live-talk',
             order: 20,
-            label: 'LiveAI Talk',
+            label: 'Live Talk',
             inject: () => ({
               speak: (text) => tts.speak(text, { provider: 'auto' }),
               startAsr: (options) => asr.start(options),
             }),
-            registrant: 'dsh-liveai-talk',
+            registrant: 'dsh-live-talk',
           },
-          LiveAITalkView,
+          LiveTalkView,
         ),
       )
     }
 
-    return { name: 'liveai-talk', inject: ['slots'], apply }
+    return { name: 'live-talk', inject: ['slots'], apply }
   },
 })

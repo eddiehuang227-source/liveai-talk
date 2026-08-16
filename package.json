@@ -1,6 +1,6 @@
 {
-  "name": "dsh-liveai-talk",
-  "version": "0.2.0",
+  "name": "dsh-live-talk",
+  "version": "0.3.0",
   "description": "Animate any photo into a responsive virtual girl. She talks, turns, smiles, and moves naturally in sync with your conversation. Low-lag, high-detail.",
   "type": "module",
   "main": "lib/index.js",
@@ -42,7 +42,7 @@
   "keywords": [
     "dsh-plugin",
     "deepseek-harness",
-    "liveai-talk",
+    "live-talk",
     "virtual-girl",
     "conversational-ai",
     "digital-human",

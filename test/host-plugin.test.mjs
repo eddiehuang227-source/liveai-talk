@@ -58,7 +58,7 @@ function fakeContext(options = {}) {
       attachController: () => () => {},
       start(spec) {
         jobSpecs.push(spec)
-        return `liveai-video-${jobSpecs.length}`
+        return `live-video-${jobSpecs.length}`
       },
     },
     webServer: {
@@ -79,13 +79,13 @@ async function invoke(route, path = route.path, request = { url: path }) {
 }
 
 test('host half declares the dsh entry contract', () => {
-  assert.equal(name, 'liveai-talk')
+  assert.equal(name, 'live-talk')
   assert.deepEqual(inject, ['webServer', 'agents', 'credentials', 'jobs'])
 })
 
 test('Config implements the Standard Schema v1 contract with defaults', () => {
   const result = Config['~standard'].validate({})
-  assert.equal(result.value.title, 'LiveAI Talk')
+  assert.equal(result.value.title, 'Live Talk')
   assert.equal(result.value.defaultCharacter, 'chie')
   assert.equal(result.value.providerPolicy.tts, 'auto')
   assert.deepEqual(
@@ -101,37 +101,37 @@ test('Config implements the Standard Schema v1 contract with defaults', () => {
 test('apply provides the character, seam, pipeline, and config services', () => {
   const { ctx, services } = fakeContext()
   apply(ctx, {})
-  assert.ok(services.has('liveaiCharacters'))
-  assert.ok(services.has('liveaiSeams'))
-  assert.ok(services.has('liveaiPipeline'))
-  assert.ok(services.has('liveaiConversation'))
-  assert.ok(services.has('liveaiConfig'))
-  assert.equal(services.get('liveaiCharacters').list().length, 2)
-  assert.equal(typeof services.get('liveaiPipeline').analyze, 'function')
-  assert.equal(typeof services.get('liveaiConversation').handleSessionEvent, 'function')
+  assert.ok(services.has('liveCharacters'))
+  assert.ok(services.has('liveSeams'))
+  assert.ok(services.has('livePipeline'))
+  assert.ok(services.has('liveConversation'))
+  assert.ok(services.has('liveConfig'))
+  assert.equal(services.get('liveCharacters').list().length, 2)
+  assert.equal(typeof services.get('livePipeline').analyze, 'function')
+  assert.equal(typeof services.get('liveConversation').handleSessionEvent, 'function')
 })
 
 test('http surface exposes characters and seam metadata', async () => {
   const { ctx, routes } = fakeContext()
   apply(ctx, { title: '自定义标题', defaultCharacter: 'rin' })
 
-  const health = JSON.parse((await invoke(routes.get('exact:/liveai/health'))).body)
+  const health = JSON.parse((await invoke(routes.get('exact:/live/health'))).body)
   assert.equal(health.ok, true)
   assert.equal(health.characters, 2)
   assert.equal(health.seams.asr.capability, 'asr')
 
-  const characters = JSON.parse((await invoke(routes.get('exact:/liveai/characters'))).body)
+  const characters = JSON.parse((await invoke(routes.get('exact:/live/characters'))).body)
   assert.equal(characters.title, '自定义标题')
   assert.equal(characters.defaultCharacter, 'rin')
   assert.equal(characters.characters[0].id, 'chie')
 
-  const seams = JSON.parse((await invoke(routes.get('exact:/liveai/seams'))).body)
+  const seams = JSON.parse((await invoke(routes.get('exact:/live/seams'))).body)
   assert.deepEqual(Object.keys(seams.seams), ['asr', 'tts', 'avatarMedia'])
   assert.deepEqual(seams.seams.asr.providers, [{ id: 'doubao' }])
   assert.deepEqual(seams.seams.tts.providers, [{ id: 'doubao' }])
   assert.deepEqual(seams.seams.avatarMedia.providers, [{ id: 'jimeng' }, { id: 'realtime-volc' }, { id: 'realtime-vidu' }])
 
-  const asset = await invoke(routes.get('prefix:/liveai/assets'), '/liveai/assets/chie.svg')
+  const asset = await invoke(routes.get('prefix:/live/assets'), '/live/assets/chie.svg')
   assert.equal(asset.statusCode, 200)
   assert.match(asset.headers['Content-Type'], /image\/svg\+xml/)
   assert.match(asset.body, /<svg/)
@@ -142,7 +142,7 @@ test('dialogue pipeline route analyzes emotion, action, and TTS text', async () 
   apply(ctx, {})
 
   const request = {
-    url: '/liveai/analyze',
+    url: '/live/analyze',
     [Symbol.asyncIterator]() {
       const chunks = [Buffer.from(JSON.stringify({
         text: '[emotion: happy][action: wave] 太好了，我们出发吧。',
@@ -155,7 +155,7 @@ test('dialogue pipeline route analyzes emotion, action, and TTS text', async () 
       }
     },
   }
-  const response = await invoke(routes.get('exact:/liveai/analyze'), '/liveai/analyze', request)
+  const response = await invoke(routes.get('exact:/live/analyze'), '/live/analyze', request)
   assert.equal(response.statusCode, 200)
   const result = JSON.parse(response.body)
   assert.equal(result.summary.emotion[0], 'happy')
@@ -173,9 +173,9 @@ test('realtime volc-token route signs a short-lived websocket token', async () =
   })
   apply(ctx, {})
   const response = await invoke(
-    routes.get('exact:/liveai/realtime/volc-token'),
-    '/liveai/realtime/volc-token?characterId=chie',
-    { url: '/liveai/realtime/volc-token?characterId=chie' },
+    routes.get('exact:/live/realtime/volc-token'),
+    '/live/realtime/volc-token?characterId=chie',
+    { url: '/live/realtime/volc-token?characterId=chie' },
   )
   assert.equal(response.statusCode, 200)
   const body = JSON.parse(response.body)
@@ -190,9 +190,9 @@ test('realtime volc-token route reports missing credentials as 503', async () =>
   const { ctx, routes } = fakeContext()
   apply(ctx, {})
   const response = await invoke(
-    routes.get('exact:/liveai/realtime/volc-token'),
-    '/liveai/realtime/volc-token',
-    { url: '/liveai/realtime/volc-token' },
+    routes.get('exact:/live/realtime/volc-token'),
+    '/live/realtime/volc-token',
+    { url: '/live/realtime/volc-token' },
   )
   assert.equal(response.statusCode, 503)
   assert.match(JSON.parse(response.body).error, /火山引擎访问密钥/)
@@ -202,7 +202,7 @@ test('video submit runs through ctx.jobs and settles failed on missing credentia
   const { ctx, routes, jobSpecs } = fakeContext()
   apply(ctx, {})
   const request = {
-    url: '/liveai/video/submit',
+    url: '/live/video/submit',
     [Symbol.asyncIterator]() {
       const chunks = [Buffer.from(JSON.stringify({ dialogue: '你好' }))]
       let index = 0
@@ -211,14 +211,14 @@ test('video submit runs through ctx.jobs and settles failed on missing credentia
       }
     },
   }
-  const response = await invoke(routes.get('exact:/liveai/video/submit'), '/liveai/video/submit', request)
+  const response = await invoke(routes.get('exact:/live/video/submit'), '/live/video/submit', request)
   assert.equal(response.statusCode, 202)
   const body = JSON.parse(response.body)
   assert.equal(body.accepted, true)
-  assert.match(body.jobId, /^liveai-video-\d+$/)
+  assert.match(body.jobId, /^live-video-\d+$/)
 
   assert.equal(jobSpecs.length, 1)
-  assert.equal(jobSpecs[0].kind, 'liveai-video')
+  assert.equal(jobSpecs[0].kind, 'live-video')
   const hooks = jobSpecs[0].run()
   assert.equal(typeof hooks.cancel, 'function')
   assert.equal(typeof hooks.readOutput, 'function')
@@ -235,7 +235,7 @@ test('talk route forwards text into the live dsh agent', async () => {
   apply(ctx, {})
 
   const request = {
-    url: '/liveai/talk',
+    url: '/live/talk',
     [Symbol.asyncIterator]() {
       const chunks = [Buffer.from(JSON.stringify({ sessionId: 'session-1', text: '你好' }))]
       let index = 0
@@ -244,12 +244,12 @@ test('talk route forwards text into the live dsh agent', async () => {
       }
     },
   }
-  const response = await invoke(routes.get('exact:/liveai/talk'), '/liveai/talk', request)
+  const response = await invoke(routes.get('exact:/live/talk'), '/live/talk', request)
   assert.equal(response.statusCode, 202)
   assert.equal(followed.length, 1)
   assert.equal(followed[0].content[0].text, '你好')
   assert.equal(followed[0].source.kind, 'plugin')
-  assert.equal(followed[0].source.plugin, 'dsh-liveai-talk')
+  assert.equal(followed[0].source.plugin, 'dsh-live-talk')
 })
 
 test('session event listener feeds assistant chunks into the pipeline', async () => {
@@ -262,7 +262,7 @@ test('session event listener feeds assistant chunks into the pipeline', async ()
   handler(subject, { type: 'assistant/chunk', chunk: { type: 'text-delta', text: '[emotion: happy] 今天真开心。' } })
   handler(subject, { type: 'assistant/message' })
 
-  const response = await invoke(routes.get('prefix:/liveai/turn'), '/liveai/turn/session-1')
+  const response = await invoke(routes.get('prefix:/live/turn'), '/live/turn/session-1')
   assert.equal(response.statusCode, 200)
   const result = JSON.parse(response.body)
   assert.equal(result.sessionId, 'session-1')

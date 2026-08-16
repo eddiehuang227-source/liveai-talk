@@ -1,5 +1,5 @@
 /**
- * LiveAI Talk capability seams.
+ * Live Talk capability seams.
  *
  * Each seam has three roles, following the DeepSeek Harness architecture:
  *   - Service Definition: the registry/contract in this package;

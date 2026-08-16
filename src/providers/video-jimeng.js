@@ -1,5 +1,5 @@
 /**
- * `jimeng` — Volcengine Jimeng dialogue-video provider for the host LiveAI Talk
+ * `jimeng` — Volcengine Jimeng dialogue-video provider for the host Live Talk
  * `avatar-media` seam. Ported from AItalk `app/api/video-submit/route.ts` and
  * `app/api/video-status/route.ts`.
  *

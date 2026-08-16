@@ -1,5 +1,5 @@
 /**
- * Self-contained prepare/build script for dsh-liveai-talk.
+ * Self-contained prepare/build script for dsh-live-talk.
  *
  * `prepare` runs after a git dependency install and must not assume a sibling
  * monorepo checkout. This build only copies the dependency-free ESM sources
@@ -18,4 +18,4 @@ rmSync(output, { recursive: true, force: true })
 mkdirSync(output, { recursive: true })
 cpSync(source, output, { recursive: true })
 
-process.stdout.write(`[dsh-liveai-talk] built ${output}\n`)
+process.stdout.write(`[dsh-live-talk] built ${output}\n`)

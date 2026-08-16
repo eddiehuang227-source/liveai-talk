@@ -1,6 +1,6 @@
 /**
  * `tts-doubao` — Doubao bidirectional streaming TTS provider for the host
- * LiveAI Talk TTS seam.
+ * Live Talk TTS seam.
  *
  * Credentials are resolved per operation through dsh's `ctx.credentials`
  * (`VOLC_APP_ID` / `VOLC_ACCESS_TOKEN` / optional `VOLC_RESOURCE_ID`), so a

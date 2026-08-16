@@ -4,10 +4,10 @@ import { ConversationBridge, createFlowactUserMessage } from '../lib/core/conver
 
 test('createFlowactUserMessage produces a dsh UserMessage wire shape', () => {
   const message = createFlowactUserMessage('你好')
-  assert.match(message.id, /^liveai-/)
+  assert.match(message.id, /^live-/)
   assert.equal(message.role, 'user')
   assert.deepEqual(message.content, [{ type: 'text', text: '你好' }])
-  assert.deepEqual(message.source, { kind: 'plugin', plugin: 'dsh-liveai-talk' })
+  assert.deepEqual(message.source, { kind: 'plugin', plugin: 'dsh-live-talk' })
 })
 
 test('bridge turns assistant text deltas into a settled pipeline summary', () => {
