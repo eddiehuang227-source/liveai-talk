@@ -16,11 +16,11 @@
 dsh plugin --profile demo add dsh-live-talk
 
 # GitHub 直装（pin 提交；用户需允许 prepare）
-dsh plugin --profile demo add github:eddiehuang227-source/live-talk#v0.3.1
+dsh plugin --profile demo add github:eddiehuang227-source/live-talk#v0.4.0
 
 # tarball
 npm pack
-dsh plugin --profile demo add ./dsh-live-talk-0.3.1.tgz
+dsh plugin --profile demo add ./dsh-live-talk-0.4.0.tgz
 ```
 
 ## 3. 发布前验证

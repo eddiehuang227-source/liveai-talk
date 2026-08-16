@@ -53,6 +53,7 @@ function fakeContext(options = {}) {
         const value = options.credentials?.[reference]
         return value === undefined ? undefined : { value }
       },
+      describe: async (reference) => ({ configured: options.credentials?.[reference] !== undefined }),
     },
     jobs: {
       attachController: () => () => {},
@@ -269,10 +270,46 @@ test('session event listener feeds assistant chunks into the pipeline', async ()
   assert.equal(result.emotion[0], 'happy')
 })
 
+test('voices and capabilities expose provider catalogs to the workbench', async () => {
+  const { ctx, routes } = fakeContext({
+    credentials: { VOLC_APP_ID: 'app', VOLC_ACCESS_TOKEN: 'token' },
+  })
+  apply(ctx, {})
+
+  const voices = JSON.parse((await invoke(routes.get('exact:/live/voices'), '/live/voices')).body)
+  assert.ok(Array.isArray(voices.voices))
+  assert.ok(voices.voices.some((voice) => voice.id.includes('uranus') || voice.id.includes('ICL')))
+  assert.equal(voices.fallback, 'browser-tts')
+
+  const capabilities = JSON.parse((await invoke(routes.get('exact:/live/capabilities'), '/live/capabilities')).body)
+  assert.ok(capabilities.providers.tts.some((provider) => provider.id === 'doubao'))
+  assert.ok(capabilities.providers.avatarMedia.some((provider) => provider.id === 'jimeng'))
+  assert.equal(capabilities.credentials.VOLC_APP_ID, true)
+  assert.equal(capabilities.credentials.VOLCENGINE_ACCESS_KEY_ID, false)
+})
+
+test('doubao tts route reports missing credentials before streaming', async () => {
+  const { ctx, routes } = fakeContext()
+  apply(ctx, {})
+  const request = {
+    url: '/live/tts',
+    [Symbol.asyncIterator]() {
+      const chunks = [Buffer.from(JSON.stringify({ text: '你好' }))]
+      let index = 0
+      return {
+        next: async () => (index < chunks.length ? { value: chunks[index++], done: false } : { done: true }),
+      }
+    },
+  }
+  const response = await invoke(routes.get('exact:/live/tts'), '/live/tts', request)
+  assert.equal(response.statusCode, 503)
+  assert.equal(JSON.parse(response.body).code, 'TTS_MISSING_CREDENTIAL')
+})
+
 test('unloading the host half disposes every registered route', () => {
   const { ctx, routes, disposers } = fakeContext()
   apply(ctx, {})
-  assert.equal(routes.size, 12)
+  assert.equal(routes.size, 15)
   for (const dispose of disposers) dispose()
   assert.equal(routes.size, 0)
 })

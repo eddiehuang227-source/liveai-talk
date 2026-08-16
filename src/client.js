@@ -138,7 +138,7 @@ window.__ModuleLoader__.load({
     const VIEW_STYLE = {
       display: 'flex',
       flexDirection: 'column',
-      gap: '16px',
+      gap: '14px',
       padding: '20px',
       height: '100%',
       overflow: 'auto',
@@ -156,6 +156,18 @@ window.__ModuleLoader__.load({
     }
     const IMAGE_STYLE = { width: '100%', aspectRatio: '3 / 4', objectFit: 'cover', display: 'block' }
     const BODY_STYLE = { padding: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }
+    const PANEL_STYLE = {
+      border: '1px solid var(--dsw-border, rgba(128, 128, 128, 0.25))',
+      borderRadius: '12px',
+      padding: '14px',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '10px',
+      background: 'var(--dsw-surface, transparent)',
+    }
+    const MODE_BAR_STYLE = { display: 'flex', gap: '8px', flexWrap: 'wrap' }
+    const MODE_BUTTON_STYLE = { padding: '6px 12px' }
+    const FIELD_STYLE = { display: 'flex', flexDirection: 'column', gap: '6px' }
 
     function CharacterCard({ character, onSpeak }) {
       return createElement(
@@ -187,9 +199,42 @@ window.__ModuleLoader__.load({
 
     function LiveTalkView({ speak, useSession, startAsr }) {
       const [state, setState] = useState({ status: 'loading', title: 'Live Talk', characters: [], error: '' })
+      const [voices, setVoices] = useState([])
+      const [voice, setVoice] = useState('zh_female_jiaochuannv_uranus_bigtts')
+      const [caps, setCaps] = useState({ providers: {}, credentials: {} })
+      const [mode, setMode] = useState('voice')
+      const [ttsStatus, setTtsStatus] = useState('')
+      const [videoText, setVideoText] = useState('')
+      const [videoStatus, setVideoStatus] = useState('')
+      const [realtimeStatus, setRealtimeStatus] = useState('')
       const sessionId = useSession((snapshot) => snapshot.sessionId)
       const [asrState, setAsrState] = useState({ status: 'idle', text: '' })
       const [turnState, setTurnState] = useState(null)
+
+      useEffect(() => {
+        let active = true
+        Promise.all([
+          fetch('/live/characters', { headers: { Accept: 'application/json' } }).then(async (response) => {
+            if (!response.ok) throw new Error(`HTTP ${response.status}`)
+            return response.json()
+          }),
+          fetch('/live/voices', { headers: { Accept: 'application/json' } }).then((response) => response.json()),
+          fetch('/live/capabilities', { headers: { Accept: 'application/json' } }).then((response) => response.json()),
+        ])
+          .then(([characters, voicesPayload, capabilitiesPayload]) => {
+            if (!active) return
+            setState({ status: 'ready', title: characters.title, characters: characters.characters || [], error: '' })
+            setVoices(voicesPayload.voices || [])
+            if (voicesPayload.voices?.[0]) setVoice(voicesPayload.voices[0].id)
+            setCaps({ providers: capabilitiesPayload.providers || {}, credentials: capabilitiesPayload.credentials || {} })
+          })
+          .catch((error) => {
+            if (active) setState({ status: 'error', title: 'Live Talk', characters: [], error: String(error) })
+          })
+        return () => {
+          active = false
+        }
+      }, [])
 
       useEffect(() => {
         if (!sessionId || state.status !== 'ready') return
@@ -212,6 +257,31 @@ window.__ModuleLoader__.load({
         }
       }, [sessionId, state.status])
 
+      async function playTts(text) {
+        setTtsStatus('正在合成豆包语音…')
+        try {
+          const response = await fetch('/live/tts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text, voice, speedLevel: 5 }),
+          })
+          if (response.ok) {
+            const blob = await response.blob()
+            const url = URL.createObjectURL(blob)
+            const audio = new Audio(url)
+            audio.onended = () => URL.revokeObjectURL(url)
+            await audio.play()
+            setTtsStatus(`豆包语音已播放 · ${voice}`)
+            return
+          }
+          const body = await response.json().catch(() => ({}))
+          setTtsStatus(`豆包未配置（${body.error || 'fallback'}），已使用浏览器语音`)
+          speak?.(text)
+        } catch {
+          setTtsStatus('豆包未连接，已使用浏览器语音')
+          speak?.(text)
+        }
+      }
 
       function startVoiceInput() {
         try {
@@ -236,63 +306,158 @@ window.__ModuleLoader__.load({
         }
       }
 
-
-      useEffect(() => {
-        let active = true
-        fetch('/live/characters', { headers: { Accept: 'application/json' } })
-          .then(async (response) => {
-            if (!response.ok) throw new Error(`HTTP ${response.status}`)
-            return response.json()
-          })
-          .then((payload) => {
-            if (active) setState({ status: 'ready', title: payload.title, characters: payload.characters || [], error: '' })
-          })
-          .catch((error) => {
-            if (active) setState({ status: 'error', title: 'Live Talk', characters: [], error: String(error) })
-          })
-        return () => {
-          active = false
+      async function submitVideo() {
+        if (!videoText.trim()) {
+          setVideoStatus('请输入要生成视频的对话文本')
+          return
         }
-      }, [])
+        setVideoStatus('正在提交即梦视频任务…')
+        try {
+          const response = await fetch('/live/video/submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ dialogue: videoText.trim(), emotion: 'happy', characterId: state.characters[0]?.id || 'chie', ability: 'v30_1080' }),
+          })
+          const body = await response.json()
+          if (!response.ok) throw new Error(body.error || `HTTP ${response.status}`)
+          setVideoStatus(`已提交 dsh 后台任务 · ${body.jobId}`)
+        } catch (error) {
+          setVideoStatus(error instanceof Error ? error.message : String(error))
+        }
+      }
+
+      async function createVolcToken() {
+        setRealtimeStatus('正在签发火山实时数字人凭证…')
+        try {
+          const response = await fetch(`/live/realtime/volc-token?characterId=${encodeURIComponent(state.characters[0]?.id || 'chie')}`)
+          const body = await response.json()
+          if (!response.ok) throw new Error(body.error || `HTTP ${response.status}`)
+          setRealtimeStatus(`火山实时凭证已就绪，14 分钟内有效 · ${new Date(body.expiresAt).toLocaleTimeString()}`)
+        } catch (error) {
+          setRealtimeStatus(error instanceof Error ? error.message : String(error))
+        }
+      }
+
+      async function createViduSession() {
+        setRealtimeStatus('正在通过本机代理创建 Vidu S1 会话…')
+        try {
+          const response = await fetch('/live/realtime/vidu/session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ characterId: state.characters[0]?.id || 'chie', persona: '你是一位温柔、自然的中文陪伴助手。' }),
+          })
+          const body = await response.json()
+          if (!response.ok) throw new Error(body.error || `HTTP ${response.status}`)
+          setRealtimeStatus(`Vidu S1 会话已创建 · liveId=${body.live?.id || body.id || 'ok'}`)
+        } catch (error) {
+          setRealtimeStatus(error instanceof Error ? error.message : String(error))
+        }
+      }
 
       if (state.status === 'loading') {
-        return createElement('div', { style: VIEW_STYLE }, createElement('p', null, '正在读取人物清单…'))
+        return createElement('div', { style: VIEW_STYLE }, createElement('p', null, '正在读取 Live Talk 工作台…'))
       }
       if (state.status === 'error') {
-        return createElement(
-          'div',
-          { style: VIEW_STYLE },
-          createElement('p', null, `人物清单读取失败：${state.error}`),
-        )
+        return createElement('div', { style: VIEW_STYLE }, createElement('p', null, `工作台读取失败：${state.error}`))
       }
+
+      const providerCards = []
+      for (const [capability, providers] of Object.entries(caps.providers)) {
+        for (const provider of providers || []) {
+          const modes = provider.capabilities?.modes?.join(' / ') || provider.capabilities?.abilities?.join(' / ') || 'registered'
+          providerCards.push(
+            createElement(
+              'div',
+              { key: `${capability}-${provider.id}`, style: { display: 'flex', justifyContent: 'space-between', gap: '8px' } },
+              createElement('span', null, `${provider.label ?? provider.id} · ${modes}`),
+              createElement('small', { style: { opacity: 0.75 } }, capability),
+            ),
+          )
+        }
+      }
+
+      const volcTtsReady = Boolean(caps.credentials.VOLC_APP_ID && caps.credentials.VOLC_ACCESS_TOKEN)
+      const volcVisualReady = Boolean(caps.credentials.VOLCENGINE_ACCESS_KEY_ID && caps.credentials.VOLCENGINE_SECRET_ACCESS_KEY)
+
       return createElement(
         'div',
         { style: VIEW_STYLE },
         createElement('h2', { style: { margin: 0 } }, state.title),
-        createElement('p', { style: { margin: 0, opacity: 0.75 } }, '对话角色可视化核心已接入 dsh：人物是 manifest 数据，语音与视频能力经 provider seam 注入。'),
-        turnState && Array.isArray(turnState.emotion) && turnState.emotion.length > 0
-          ? createElement('p', { style: { margin: 0 } }, `最新语义：情绪 ${turnState.emotion.join(' / ')}${turnState.actions?.length ? ` · 动作 ${turnState.actions.join(' / ')}` : ''}`)
+        createElement('p', { style: { margin: 0, opacity: 0.75 } }, 'Animate any photo into a responsive virtual girl. She talks, turns, smiles, and moves naturally in sync with your conversation. Low-lag, high-detail.'),
+        createElement(
+          'div',
+          { style: MODE_BAR_STYLE },
+          createElement('button', { type: 'button', style: { ...MODE_BUTTON_STYLE, fontWeight: mode === 'voice' ? 700 : 400 }, onClick: () => setMode('voice') }, '语音对话'),
+          createElement('button', { type: 'button', style: { ...MODE_BUTTON_STYLE, fontWeight: mode === 'video' ? 700 : 400 }, onClick: () => setMode('video') }, '视频生成'),
+          createElement('button', { type: 'button', style: { ...MODE_BUTTON_STYLE, fontWeight: mode === 'realtime' ? 700 : 400 }, onClick: () => setMode('realtime') }, '实时数字人'),
+        ),
+        mode === 'voice'
+          ? createElement(
+              'div',
+              { style: PANEL_STYLE },
+              createElement('strong', null, '音色选择'),
+              createElement(
+                'select',
+                { value: voice, onChange: (event) => setVoice(event.target.value), style: { maxWidth: '420px' } },
+                voices.map((item) => createElement('option', { key: item.id, value: item.id }, `${item.label} · ${item.id}`)),
+              ),
+              createElement('small', { style: { opacity: 0.75 } }, volcTtsReady ? '豆包 TTS 已配置，试听会走云端语音。' : '未检测到豆包 TTS 凭据，试听会回退到浏览器语音。'),
+              ttsStatus ? createElement('small', null, ttsStatus) : null,
+              createElement(
+                'div',
+                { style: { display: 'flex', gap: '8px', alignItems: 'center' } },
+                createElement('button', { type: 'button', onClick: startVoiceInput }, '语音输入'),
+                createElement('small', { style: { opacity: 0.8 } },
+                  asrState.status === 'recognized'
+                    ? `识别结果：${asrState.text}`
+                    : asrState.status === 'listening'
+                      ? '正在聆听…'
+                      : asrState.status === 'error'
+                        ? `语音识别不可用：${asrState.text}`
+                        : ''),
+              ),
+              turnState && Array.isArray(turnState.emotion) && turnState.emotion.length > 0
+                ? createElement('p', { style: { margin: 0 } }, `最新语义：情绪 ${turnState.emotion.join(' / ')}${turnState.actions?.length ? ` · 动作 ${turnState.actions.join(' / ')}` : ''}`)
+                : null,
+            )
+          : null,
+        mode === 'video'
+          ? createElement(
+              'div',
+              { style: PANEL_STYLE },
+              createElement('strong', null, '即梦视频生成（火山引擎）'),
+              createElement('label', { style: FIELD_STYLE }, createElement('span', null, '对话文本'), createElement('textarea', { rows: 3, value: videoText, onChange: (event) => setVideoText(event.target.value), placeholder: '输入一句角色要说的台词' })),
+              createElement('button', { type: 'button', onClick: submitVideo, style: { alignSelf: 'flex-start' } }, '提交视频生成'),
+              createElement('small', { style: { opacity: 0.75 } }, volcVisualReady ? '火山引擎访问密钥已配置。' : '未配置火山引擎访问密钥，提交后任务会在 dsh jobs 中记录失败原因。'),
+              videoStatus ? createElement('small', null, videoStatus) : null,
+            )
+          : null,
+        mode === 'realtime'
+          ? createElement(
+              'div',
+              { style: PANEL_STYLE },
+              createElement('strong', null, '实时数字人通道'),
+              createElement('button', { type: 'button', onClick: createVolcToken, style: { alignSelf: 'flex-start' } }, '获取火山实时数字人凭证'),
+              createElement('button', { type: 'button', onClick: createViduSession, style: { alignSelf: 'flex-start' } }, '创建 Vidu S1 实时会话'),
+              createElement('small', { style: { opacity: 0.75 } }, '火山 SDK 令牌有效期 14 分钟；Vidu Key 由你的本机 18088 代理持有。'),
+              realtimeStatus ? createElement('small', null, realtimeStatus) : null,
+            )
           : null,
         createElement(
           'div',
-          { style: { display: 'flex', gap: '8px', alignItems: 'center' } },
-          createElement('button', { type: 'button', onClick: startVoiceInput }, '语音输入'),
-          createElement('small', { style: { opacity: 0.8 } },
-            asrState.status === 'recognized'
-              ? `识别结果：${asrState.text}`
-              : asrState.status === 'listening'
-                ? '正在聆听…'
-                : asrState.status === 'error'
-                  ? `语音识别不可用：${asrState.text}`
-                  : ''),
+          { style: PANEL_STYLE },
+          createElement('strong', null, '能力状态'),
+          providerCards.length > 0 ? providerCards : createElement('small', null, '正在读取 provider 能力…'),
+          createElement('small', { style: { opacity: 0.75 } }, `豆包语音：${volcTtsReady ? '已配置' : '未配置'} · 火山视觉/实时：${volcVisualReady ? '已配置' : '未配置'}`),
         ),
         createElement(
           'div',
           { style: GRID_STYLE },
-          state.characters.map((character) => createElement(CharacterCard, { key: character.id, character, onSpeak: speak })),
+          state.characters.map((character) => createElement(CharacterCard, { key: character.id, character, onSpeak: playTts })),
         ),
       )
     }
+
 
     function apply(ctx) {
       const tts = new ClientTtsRuntime()

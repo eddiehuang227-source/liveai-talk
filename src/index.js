@@ -88,6 +88,34 @@ function sendText(response, status, contentType, body) {
   response.end(body)
 }
 
+function sendBuffer(response, status, contentType, buffer) {
+  response.writeHead(status, {
+    'Content-Type': contentType,
+    'Content-Length': buffer.length,
+    'Cache-Control': 'no-store',
+  })
+  response.end(buffer)
+}
+
+function wavFromPcmChunks(chunks, sampleRate = 24_000) {
+  const pcm = Buffer.concat(chunks.map((chunk) => Buffer.from(chunk)))
+  const header = Buffer.alloc(44)
+  header.write('RIFF', 0)
+  header.writeUInt32LE(36 + pcm.length, 4)
+  header.write('WAVE', 8)
+  header.write('fmt ', 12)
+  header.writeUInt32LE(16, 16)
+  header.writeUInt16LE(1, 20)
+  header.writeUInt16LE(1, 22)
+  header.writeUInt32LE(sampleRate, 24)
+  header.writeUInt32LE(sampleRate * 2, 28)
+  header.writeUInt16LE(2, 32)
+  header.writeUInt16LE(16, 34)
+  header.write('data', 36)
+  header.writeUInt32LE(pcm.length, 40)
+  return Buffer.concat([header, pcm])
+}
+
 async function readJsonBody(request) {
   const chunks = []
   let size = 0
@@ -153,7 +181,7 @@ export function apply(ctx, rawConfig = {}) {
           ok: true,
           plugin: 'dsh-live-talk',
           module: name,
-          version: '0.3.1',
+          version: '0.4.0',
           characters: characters.list().length,
           seams: Object.fromEntries(
             Object.entries(SEAMS).map(([key, seam]) => [key, { capability: seam.capability, providers: seams[key].list().length }]),
@@ -189,6 +217,85 @@ export function apply(ctx, rawConfig = {}) {
             ]),
           ),
         })
+      },
+    })
+
+    const disposeVoices = ctx.webServer.register({
+      kind: 'exact',
+      path: '/live/voices',
+      handler: (_request, response) => {
+        const provider = seams.tts.providers.get('doubao')
+        sendJson(response, 200, {
+          voices: provider?.listVoices?.() ?? [],
+          fallback: 'browser-tts',
+        })
+      },
+    })
+
+    const disposeCapabilities = ctx.webServer.register({
+      kind: 'exact',
+      path: '/live/capabilities',
+      handler: async (_request, response) => {
+        const credentialRefs = [
+          'VOLC_APP_ID',
+          'VOLC_ACCESS_TOKEN',
+          'VOLC_ASR_API_KEY',
+          'VOLCENGINE_ACCESS_KEY_ID',
+          'VOLCENGINE_SECRET_ACCESS_KEY',
+        ]
+        const credentials = {}
+        for (const ref of credentialRefs) {
+          try {
+            credentials[ref] = (await ctx.credentials.describe(ref)).configured
+          } catch {
+            credentials[ref] = false
+          }
+        }
+        sendJson(response, 200, {
+          providers: Object.fromEntries(
+            Object.entries(seams).map(([key, registry]) => [
+              key,
+              registry.list().map((provider) => ({
+                id: provider.id,
+                label: provider.label ?? provider.id,
+                capabilities: provider.capabilities?.() ?? {},
+              })),
+            ]),
+          ),
+          credentials,
+        })
+      },
+    })
+
+    const disposeTts = ctx.webServer.register({
+      kind: 'exact',
+      path: '/live/tts',
+      handler: async (request, response) => {
+        try {
+          const body = await readJsonBody(request)
+          const text = typeof body.text === 'string' ? body.text.trim() : ''
+          if (!text || text.length > 500) {
+            sendJson(response, 400, { error: 'text must be 1-500 characters' })
+            return
+          }
+          const provider = seams.tts.resolve('doubao')
+          const chunks = []
+          for await (const pcm of provider.synthesize(text, {
+            voice: typeof body.voice === 'string' ? body.voice : undefined,
+            speedLevel: Number(body.speedLevel) || 5,
+          })) {
+            chunks.push(pcm)
+          }
+          if (chunks.length === 0) {
+            sendJson(response, 502, { error: 'TTS_NO_AUDIO', message: '豆包 TTS 未返回音频' })
+            return
+          }
+          sendBuffer(response, 200, 'audio/wav', wavFromPcmChunks(chunks))
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error)
+          const code = error?.code || 'TTS_FAILED'
+          sendJson(response, code === 'TTS_MISSING_CREDENTIAL' ? 503 : 502, { error: message, code })
+        }
       },
     })
 
@@ -376,6 +483,9 @@ export function apply(ctx, rawConfig = {}) {
       disposeTalk()
       disposeAnalyze()
       disposePipelineMeta()
+      disposeTts()
+      disposeCapabilities()
+      disposeVoices()
       disposeAssets()
       disposeSeams()
       disposeCharacters()
