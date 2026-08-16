@@ -153,7 +153,7 @@ export function apply(ctx, rawConfig = {}) {
           ok: true,
           plugin: 'dsh-live-talk',
           module: name,
-          version: '0.1.0',
+          version: '0.3.1',
           characters: characters.list().length,
           seams: Object.fromEntries(
             Object.entries(SEAMS).map(([key, seam]) => [key, { capability: seam.capability, providers: seams[key].list().length }]),
