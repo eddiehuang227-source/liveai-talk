@@ -189,6 +189,29 @@ window.__ModuleLoader__.load({
       const [state, setState] = useState({ status: 'loading', title: 'FlowAct 数字人', characters: [], error: '' })
       const sessionId = useSession((snapshot) => snapshot.sessionId)
       const [asrState, setAsrState] = useState({ status: 'idle', text: '' })
+      const [turnState, setTurnState] = useState(null)
+
+      useEffect(() => {
+        if (!sessionId || state.status !== 'ready') return
+        let active = true
+        let timer
+        const poll = async () => {
+          try {
+            const response = await fetch(`/flowact/turn/${encodeURIComponent(sessionId)}`)
+            if (active && response.ok) setTurnState(await response.json())
+          } catch {
+            // The bridge may not have seen an assistant turn yet.
+          } finally {
+            if (active) timer = setTimeout(poll, 2000)
+          }
+        }
+        poll()
+        return () => {
+          active = false
+          if (timer) clearTimeout(timer)
+        }
+      }, [sessionId, state.status])
+
 
       function startVoiceInput() {
         try {
@@ -247,6 +270,9 @@ window.__ModuleLoader__.load({
         { style: VIEW_STYLE },
         createElement('h2', { style: { margin: 0 } }, state.title),
         createElement('p', { style: { margin: 0, opacity: 0.75 } }, '对话角色可视化核心已接入 dsh：人物是 manifest 数据，语音与视频能力经 provider seam 注入。'),
+        turnState && Array.isArray(turnState.emotion) && turnState.emotion.length > 0
+          ? createElement('p', { style: { margin: 0 } }, `最新语义：情绪 ${turnState.emotion.join(' / ')}${turnState.actions?.length ? ` · 动作 ${turnState.actions.join(' / ')}` : ''}`)
+          : null,
         createElement(
           'div',
           { style: { display: 'flex', gap: '8px', alignItems: 'center' } },

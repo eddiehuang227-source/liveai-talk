@@ -105,6 +105,17 @@ async function clickWhenPresent(page, text, timeout = 8_000) {
   }
 }
 
+async function clickMatching(page, regex, timeout = 8_000) {
+  try {
+    const locator = page.getByRole('button', { name: regex }).first()
+    await locator.waitFor({ state: 'visible', timeout })
+    await locator.click()
+    return true
+  } catch {
+    return false
+  }
+}
+
 async function main() {
   const missing = REQUIRED_KEYS.filter((key) => !process.env[key])
   if (missing.length > 0) {
@@ -158,15 +169,43 @@ async function main() {
 
     const playwright = await loadPlaywright()
     const browser = await playwright.chromium.launch({ headless: true })
-    const page = await browser.newPage()
+    // Force zh-CN so the assertions match the dsh product copy regardless of
+    // the machine/browser default language.
+    const context = await browser.newContext({ locale: 'zh-CN' })
+    const page = await context.newPage()
     await page.goto(base)
 
-    await clickWhenPresent(page, '继续')
-    await clickWhenPresent(page, '稍后配置')
-    await clickWhenPresent(page, '在“record”中新建会话')
+    await page.waitForLoadState('domcontentloaded')
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      await clickMatching(page, /^(Continue|继续)$/, 2_000)
+      await clickMatching(page, /(later|skip|稍后)/i, 2_000)
+      await page.waitForTimeout(500)
+    }
+
+    const workspace = page.getByRole('treeitem', { name: /record/ }).first()
+    try {
+      await workspace.waitFor({ state: 'visible', timeout: 10_000 })
+      await workspace.click()
+      await page.waitForTimeout(800)
+    } catch {
+      // The workspace may already be expanded.
+    }
+    await clickMatching(page, /(new session in|新建会话).*record|record.*(new session|新建会话)/i, 10_000)
+    if (await page.getByRole('textbox', { name: '描述你想要构建的内容' }).count() === 0) {
+      await clickMatching(page, /new session|新建会话/i, 5_000)
+    }
 
     const input = page.getByRole('textbox', { name: '描述你想要构建的内容' })
-    await input.waitFor({ state: 'visible', timeout: 30_000 })
+    try {
+      await input.waitFor({ state: 'visible', timeout: 30_000 })
+    } catch (error) {
+      const bodyText = await page.locator('body').innerText({ timeout: 1_000 }).catch(() => '<unavailable>')
+      const buttons = await page.getByRole('button').allTextContents().catch(() => [])
+      await page.screenshot({ path: join(recordings, 'record-failure.png'), fullPage: true }).catch(() => {})
+      console.error(`[record-live] input wait failed. page text:\n${bodyText}`)
+      console.error(`[record-live] buttons: ${JSON.stringify(buttons)}`)
+      throw error
+    }
     const prompt = '只输出一行：[emotion: happy] 你好，我是你的数字人伙伴。'
     await input.fill(prompt)
     await input.press('Enter')

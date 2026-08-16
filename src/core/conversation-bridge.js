@@ -33,7 +33,11 @@ export class ConversationBridge {
     const sessionId = typeof subject?.id === 'string' ? subject.id : String(subject?.id ?? '')
     if (!sessionId) return
 
-    if (event.type === 'assistant/chunk' && event.chunk?.type === 'text-delta') {
+    // dsh session events carry their payload under `data`: the live wire shape
+    // is `{ type, seq, time, data: { turn, step, chunk } }`, while replayed
+    // fixtures are sometimes flattened to `{ type, chunk }`. Accept both.
+    const chunk = event.chunk ?? event.data?.chunk
+    if (event.type === 'assistant/chunk' && chunk?.type === 'text-delta') {
       let turn = this.turns.get(sessionId)
       if (!turn) {
         const events = []
@@ -47,7 +51,7 @@ export class ConversationBridge {
         this.turns.set(sessionId, turn)
         turn.pipeline.beginTurn()
       }
-      turn.pipeline.applyDelta(event.chunk.text)
+      turn.pipeline.applyDelta(chunk.text)
       return { sessionId, phase: turn.pipeline.phase, summary: turn.pipeline.summary() }
     }
 

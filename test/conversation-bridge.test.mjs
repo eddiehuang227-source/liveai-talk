@@ -28,6 +28,20 @@ test('bridge turns assistant text deltas into a settled pipeline summary', () =>
   assert.equal(latest.sentences.length, 1)
 })
 
+test('bridge accepts the live dsh wire shape where chunk lives under data', () => {
+  const bridge = new ConversationBridge()
+  bridge.handleSessionEvent({ id: 'live-1' }, {
+    type: 'assistant/chunk',
+    seq: 1,
+    time: Date.now(),
+    data: { turn: 1, step: 1, chunk: { type: 'text-delta', index: 0, text: '[emotion: happy] 成功了。' } },
+  })
+  bridge.handleSessionEvent({ id: 'live-1' }, { type: 'assistant/message', data: {} })
+  const latest = bridge.latest('live-1')
+  assert.equal(latest.phase, 'settled')
+  assert.equal(latest.emotion[0], 'happy')
+})
+
 test('bridge ignores non-text chunks and keeps sessions isolated', () => {
   const bridge = new ConversationBridge()
   bridge.handleSessionEvent({ id: 's1' }, {
