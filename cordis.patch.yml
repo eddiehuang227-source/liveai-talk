@@ -1,0 +1,17 @@
+# dsh-flowact-avatar bundle patch.
+#
+# The bundle is applied after @deepseek-ai/dsh-base and (for web profiles)
+# @deepseek-ai/dsh-web-app, so this insert only adds the FlowAct host/client
+# plugin row. Users can override the whole row config in their own
+# $DSH_HOME/profiles/<name>/cordis.patch.yml or $DSH_HOME/cordis.patch.yml;
+# later layers win per row.
+- insert:
+    - id: flowact-avatar
+      name: 'dsh-flowact-avatar'
+      config:
+        title: 'FlowAct 数字人'
+        defaultCharacter: 'chie'
+        providerPolicy:
+          tts: 'auto'
+          asr: 'auto'
+          avatarMedia: 'jimeng'

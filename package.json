@@ -1,0 +1,51 @@
+{
+  "name": "dsh-flowact-avatar",
+  "version": "0.1.0",
+  "description": "FlowAct conversational character avatar as a DeepSeek Harness (dsh) bundle: a character-visualization core with pluggable ASR/TTS/avatar-media provider seams.",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": {
+      "default": "./lib/client.js"
+    },
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md",
+    "ROADMAP.md",
+    "ASSET-LICENSE.md",
+    "PUBLISHING.md",
+    "LICENSE"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web"
+    }
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "prepare": "node scripts/build.mjs",
+    "test": "node scripts/build.mjs && node --test test/*.test.mjs",
+    "test:integration": "node scripts/dsh-smoke-test.mjs"
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "ai-avatar",
+    "digital-human",
+    "conversational-ai",
+    "tts",
+    "asr"
+  ],
+  "license": "MIT"
+}
