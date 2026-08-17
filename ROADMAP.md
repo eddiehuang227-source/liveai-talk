@@ -1,6 +1,6 @@
 # 路线图 / Roadmap
 
-当前状态：**全部目标完成** —— Live Talk 已发布到 GitHub 与 npm，真实 API Key 录制已产出，上游 seam 提案已提交；插件三层结构与全部 provider 就绪，73 个单元测试与真实 dsh 安装冒烟测试通过。
+当前状态：**全部目标完成** —— Live Talk 已发布到 GitHub 与 npm，真实 API Key 录制已产出，上游 seam 提案已提交；插件三层结构与全部 provider 就绪，75 个单元测试与真实 dsh 安装冒烟测试通过。
 
 ## M1 已完成（本轮）
 
@@ -11,7 +11,7 @@
 - [x] core：`CharacterRegistry`、`ProviderRegistry`、内置人物 manifest
 - [x] seam：`asr` / `tts` / `avatar-media` 契约与注册表
 - [x] client：`conversation.view` slot 注册「Live Talk」标签页，显示人物卡
-- [x] 测试：单元 73/73；集成测试真实安装 tarball → dump-config → 启动 web → 探针通过
+- [x] 测试：单元 75/75；集成测试真实安装 tarball → dump-config → 启动 web → 探针通过
 - [x] 浏览器人工验证：dsh Web UI 出现「Live Talk」标签并渲染两位人物
 
 ## M2 核心对话管线（已完成）
@@ -37,13 +37,13 @@
 
 ## M5 发布（准备完成）
 
-- [x] 人物素材授权清理：插件不打包 AItalk 授权素材，占位图为代码生成 SVG（`ASSET-LICENSE.md`）
+- [x] 人物素材授权清理：四名角色改为原创 AI 形象与原创命名，预览图/开场视频随包发布（`ASSET-LICENSE.md`）
 - [x] 仓库 topic `dsh-plugin` 与安装命令写入 README/PUBLISHING；npm pack 与 tarball 安装路径已实测
 
 ## 发布与上游状态
 
-- [x] GitHub：`https://github.com/eddiehuang227-source/dsh-live-talk`（public，topics 含 `dsh-plugin`，tag `v0.5.0`，Release 附 `dsh-live-talk-0.5.0.tgz`）
-- [x] npm：`dsh-live-talk@0.5.0` 已发布到 registry.npmjs.org（tarball：`https://registry.npmjs.org/dsh-live-talk/-/dsh-live-talk-0.5.0.tgz`）
+- [x] GitHub：`https://github.com/eddiehuang227-source/live-talk`（public，topics 含 `dsh-plugin`；tag `v0.6.0`，Release 附 `dsh-live-talk-0.6.0.tgz`；0.5.0 及更早的含旧角色名 release/tag 已移除）
+- [x] npm：`dsh-live-talk@0.6.0` 由 release 发布 workflow 自动 `npm publish`（需 repo 的 `NPM_TOKEN` secret）；0.3.0–0.5.0 因携带旧角色名，在 72h 窗口内 `npm unpublish` 或 `npm deprecate`
 - [x] 上游提案：deepseek-harness Discussion **#2431**（Ideas：standard ASR/TTS/avatar-media seams）
 - [x] 真实录制：从 `.hermes/.env.bak` 注入 `DEEPSEEK_API_KEY` 后 `record:live` 成功——DeepSeek 回复 `[emotion: happy] 你好，我是你的数字人伙伴。`，浏览器“最新语义”渲染 happy，截图与 JSON 证据在 `recordings/`
 

@@ -15,8 +15,21 @@ window.__ModuleLoader__.load({
   factory: (require) => {
     const React = require('react')
     const { createElement, useEffect, useState } = React
-    const { Button, Input, StateDot } = require('@deepseek-ai/dsh-client-ui-primitives')
+    const { Button, Input } = require('@deepseek-ai/dsh-client-ui-primitives')
     let activeAsrHandle = null
+
+    /**
+     * Theme is consumed through DSH's semantic aliases only (`--dsw-alias-*`).
+     * Writing literal colors here would break the dark scheme and the theme
+     * ownership contract in docs/web-styling.
+     */
+    const PLACEHOLDER_SRC = '/live/assets/placeholder.svg'
+    const COLOR_PRIMARY = 'var(--dsw-alias-label-primary)'
+    const COLOR_SECONDARY = 'var(--dsw-alias-label-secondary)'
+    const COLOR_CAPTION = 'var(--dsw-alias-label-caption)'
+    const COLOR_DANGER = 'var(--dsw-alias-state-error-primary)'
+    const SURFACE = 'var(--dsw-alias-bg-layer-1)'
+    const BORDER = 'var(--dsw-alias-border-l1)'
 
     /** Small client-side TTS seam: providers are replaceable without touching the view. */
     class ClientTtsRuntime {
@@ -149,50 +162,146 @@ window.__ModuleLoader__.load({
       gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
       gap: '14px',
     }
+    const STAGE_GRID_STYLE = {
+      display: 'grid',
+      gridTemplateColumns: 'minmax(260px, 360px) minmax(0, 1fr)',
+      gap: '14px',
+      alignItems: 'start',
+    }
     const CARD_STYLE = {
-      border: '1px solid var(--dsw-border, rgba(128, 128, 128, 0.25))',
+      border: `1px solid ${BORDER}`,
       borderRadius: '12px',
       overflow: 'hidden',
-      background: 'var(--dsw-surface, transparent)',
+      background: SURFACE,
+      cursor: 'pointer',
     }
     const IMAGE_STYLE = { width: '100%', aspectRatio: '3 / 4', objectFit: 'cover', display: 'block' }
     const BODY_STYLE = { padding: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }
     const PANEL_STYLE = {
-      border: '1px solid var(--dsw-border, rgba(128, 128, 128, 0.25))',
+      border: `1px solid ${BORDER}`,
       borderRadius: '12px',
       padding: '14px',
       display: 'flex',
       flexDirection: 'column',
       gap: '10px',
-      background: 'var(--dsw-surface, transparent)',
+      background: SURFACE,
+    }
+    const STAGE_STYLE = {
+      position: 'sticky',
+      top: '12px',
+      border: `1px solid ${BORDER}`,
+      borderRadius: '12px',
+      overflow: 'hidden',
+      background: SURFACE,
+    }
+    const STAGE_MEDIA_STYLE = { width: '100%', aspectRatio: '3 / 4', objectFit: 'cover', display: 'block' }
+    const STAGE_HEADER_STYLE = {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      gap: '8px',
+      padding: '10px 12px',
+      color: COLOR_PRIMARY,
     }
     const MODE_BAR_STYLE = { display: 'flex', gap: '8px', flexWrap: 'wrap' }
-    const MODE_BUTTON_STYLE = { padding: '6px 12px' }
     const FIELD_STYLE = { display: 'flex', flexDirection: 'column', gap: '6px' }
 
-    function CharacterCard({ character, onSpeak }) {
+    /** Selected-character stage: opening video, emotion clip, or portrait. */
+    function CharacterStage({ character, clip, opening, onOpeningEnd }) {
+      const [broken, setBroken] = useState(false)
+      useEffect(() => {
+        setBroken(false)
+      }, [character?.id, clip, opening])
+      if (!character) return null
+      const poster = broken ? PLACEHOLDER_SRC : character.previewUrl
+      let label = '待机'
+      let media = null
+      if (opening && character.openingVideo && !broken) {
+        label = '有声开场预览'
+        media = createElement('video', {
+          key: 'opening',
+          src: character.openingVideo,
+          poster,
+          controls: true,
+          autoPlay: true,
+          playsInline: true,
+          style: STAGE_MEDIA_STYLE,
+          onEnded: onOpeningEnd,
+          onError: () => setBroken(true),
+        })
+      } else if (clip && !broken) {
+        label = '情绪片段'
+        media = createElement('video', {
+          key: clip,
+          src: clip,
+          poster,
+          autoPlay: true,
+          muted: true,
+          loop: true,
+          playsInline: true,
+          style: STAGE_MEDIA_STYLE,
+          onError: () => setBroken(true),
+        })
+      } else {
+        media = createElement('img', {
+          src: poster,
+          alt: character.name,
+          style: STAGE_MEDIA_STYLE,
+          onError: () => setBroken(true),
+        })
+      }
+      return createElement(
+        'div',
+        { style: STAGE_STYLE },
+        createElement(
+          'div',
+          { style: STAGE_HEADER_STYLE },
+          createElement('strong', null, character.name),
+          createElement('small', { style: { color: COLOR_CAPTION } }, label),
+        ),
+        media,
+      )
+    }
+
+    function CharacterCard({ character, selected, onSelect, onSpeak, onOpening }) {
+      const [broken, setBroken] = useState(false)
+      useEffect(() => {
+        setBroken(false)
+      }, [character?.id])
+      const cardStyle = selected
+        ? { ...CARD_STYLE, borderColor: 'var(--dsw-alias-brand-primary)' }
+        : CARD_STYLE
       return createElement(
         'article',
-        { style: CARD_STYLE },
-        createElement('img', { src: character.previewUrl, alt: character.name, style: IMAGE_STYLE }),
+        { style: cardStyle, onClick: onSelect },
+        createElement('img', {
+          src: broken ? PLACEHOLDER_SRC : character.previewUrl,
+          alt: character.name,
+          style: IMAGE_STYLE,
+          onError: () => setBroken(true),
+        }),
         createElement(
           'div',
           { style: BODY_STYLE },
-          createElement('strong', null, character.name),
-          createElement('small', null, character.description),
+          createElement('strong', { style: { color: COLOR_PRIMARY } }, character.name),
+          createElement('small', { style: { color: COLOR_SECONDARY } }, character.description),
           createElement(
             'code',
-            { style: { fontSize: '11px', opacity: 0.75 } },
+            { style: { fontSize: '11px', color: COLOR_CAPTION } },
             `tts:${character.providers?.tts?.id ?? 'auto'} · media:${character.providers?.avatarMedia?.id ?? 'auto'}`,
           ),
           createElement(
-            'button',
-            {
-              type: 'button',
-              onClick: () => onSpeak?.(`你好，我是${character.name}。`),
-              style: { alignSelf: 'flex-start', marginTop: '4px' },
-            },
-            '试听',
+            'div',
+            { style: { display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' } },
+            createElement(Button, {
+              size: 'sm',
+              variant: selected ? 'primary' : 'ghost',
+              onClick: onSelect,
+            }, selected ? '当前角色' : '选择'),
+            createElement(Button, { size: 'sm', onClick: () => onSpeak?.(`你好，我是${character.name}。`) }, '试听'),
+            character.openingVideo
+              ? createElement(Button, { size: 'sm', onClick: onOpening }, '开场')
+              : null,
           ),
         ),
       )
@@ -214,6 +323,9 @@ window.__ModuleLoader__.load({
       const sessionId = useSession((snapshot) => snapshot.sessionId)
       const [asrState, setAsrState] = useState({ status: 'idle', text: '' })
       const [turnState, setTurnState] = useState(null)
+      const [selectedId, setSelectedId] = useState(null)
+      const [stageClip, setStageClip] = useState(null)
+      const [opening, setOpening] = useState(false)
 
       useEffect(() => {
         let active = true
@@ -227,7 +339,10 @@ window.__ModuleLoader__.load({
         ])
           .then(([characters, voicesPayload, capabilitiesPayload]) => {
             if (!active) return
-            setState({ status: 'ready', title: characters.title, characters: characters.characters || [], error: '' })
+            const list = characters.characters || []
+            const preferred = characters.defaultCharacter
+            setState({ status: 'ready', title: characters.title, characters: list, error: '' })
+            setSelectedId(list.some((character) => character.id === preferred) ? preferred : list[0]?.id ?? null)
             setVoices(voicesPayload.voices || [])
             if (voicesPayload.voices?.[0]) setVoice(voicesPayload.voices[0].id)
             setCaps({ providers: capabilitiesPayload.providers || {}, credentials: capabilitiesPayload.credentials || {} })
@@ -260,6 +375,26 @@ window.__ModuleLoader__.load({
           if (timer) clearTimeout(timer)
         }
       }, [sessionId, state.status])
+
+      const selected = state.characters.find((character) => character.id === selectedId) ?? state.characters[0] ?? null
+
+      useEffect(() => {
+        setStageClip(null)
+        setOpening(false)
+      }, [selectedId])
+
+      useEffect(() => {
+        if (!selected || state.status !== 'ready') return
+        const sentences = turnState?.sentences ?? []
+        const last = sentences[sentences.length - 1]
+        const clip = last?.emotion && selected.clips?.[last.emotion]
+        setStageClip(clip ?? null)
+      }, [turnState, selected?.id])
+
+      const latestEmotion = (() => {
+        const sentences = turnState?.sentences ?? []
+        return sentences[sentences.length - 1]?.emotion ?? null
+      })()
 
       async function playTts(text) {
         setTtsStatus('正在合成豆包语音…')
@@ -320,7 +455,12 @@ window.__ModuleLoader__.load({
           const response = await fetch('/live/video/submit', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ dialogue: videoText.trim(), emotion: 'happy', characterId: state.characters[0]?.id || 'chie', ability: 'v30_1080' }),
+            body: JSON.stringify({
+              dialogue: videoText.trim(),
+              emotion: latestEmotion ?? 'happy',
+              characterId: selected?.id ?? 'chie',
+              ability: 'v30_1080',
+            }),
           })
           const body = await response.json()
           if (!response.ok) throw new Error(body.error || `HTTP ${response.status}`)
@@ -333,7 +473,7 @@ window.__ModuleLoader__.load({
       async function createVolcToken() {
         setRealtimeStatus('正在签发火山实时数字人凭证…')
         try {
-          const response = await fetch(`/live/realtime/volc-token?characterId=${encodeURIComponent(state.characters[0]?.id || 'chie')}`)
+          const response = await fetch(`/live/realtime/volc-token?characterId=${encodeURIComponent(selected?.id ?? 'chie')}`)
           const body = await response.json()
           if (!response.ok) throw new Error(body.error || `HTTP ${response.status}`)
           setRealtimeStatus(`火山实时凭证已就绪，14 分钟内有效 · ${new Date(body.expiresAt).toLocaleTimeString()}`)
@@ -348,7 +488,10 @@ window.__ModuleLoader__.load({
           const response = await fetch('/live/realtime/vidu/session', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ characterId: state.characters[0]?.id || 'chie', persona: '你是一位温柔、自然的中文陪伴助手。' }),
+            body: JSON.stringify({
+              characterId: selected?.id ?? 'chie',
+              persona: selected?.persona ?? '你是一位温柔、自然的中文陪伴助手。',
+            }),
           })
           const body = await response.json()
           if (!response.ok) throw new Error(body.error || `HTTP ${response.status}`)
@@ -396,8 +539,8 @@ window.__ModuleLoader__.load({
             createElement(
               'div',
               { key: `${capability}-${provider.id}`, style: { display: 'flex', justifyContent: 'space-between', gap: '8px' } },
-              createElement('span', null, `${provider.label ?? provider.id} · ${modes}`),
-              createElement('small', { style: { opacity: 0.75 } }, capability),
+              createElement('span', { style: { color: COLOR_PRIMARY } }, `${provider.label ?? provider.id} · ${modes}`),
+              createElement('small', { style: { color: COLOR_CAPTION } }, capability),
             ),
           )
         }
@@ -410,13 +553,41 @@ window.__ModuleLoader__.load({
         'div',
         { style: VIEW_STYLE },
         createElement('h2', { style: { margin: 0 } }, state.title),
-        createElement('p', { style: { margin: 0, opacity: 0.75 } }, 'Animate any photo into a responsive virtual girl. She talks, turns, smiles, and moves naturally in sync with your conversation. Low-lag, high-detail.'),
+        createElement('p', { style: { margin: 0, color: COLOR_SECONDARY } }, 'Animate any photo into a responsive virtual girl. She talks, turns, smiles, and moves naturally in sync with your conversation. Low-lag, high-detail.'),
         createElement(
           'div',
           { style: MODE_BAR_STYLE },
-          createElement(Button, { type: 'button', style: { ...MODE_BUTTON_STYLE, fontWeight: mode === 'voice' ? 700 : 400 }, onClick: () => setMode('voice') }, '语音对话'),
-          createElement(Button, { type: 'button', style: { ...MODE_BUTTON_STYLE, fontWeight: mode === 'video' ? 700 : 400 }, onClick: () => setMode('video') }, '视频生成'),
-          createElement(Button, { type: 'button', style: { ...MODE_BUTTON_STYLE, fontWeight: mode === 'realtime' ? 700 : 400 }, onClick: () => setMode('realtime') }, '实时数字人'),
+          createElement(Button, { size: 'sm', variant: mode === 'voice' ? 'primary' : 'ghost', onClick: () => setMode('voice') }, '语音对话'),
+          createElement(Button, { size: 'sm', variant: mode === 'video' ? 'primary' : 'ghost', onClick: () => setMode('video') }, '视频生成'),
+          createElement(Button, { size: 'sm', variant: mode === 'realtime' ? 'primary' : 'ghost', onClick: () => setMode('realtime') }, '实时数字人'),
+        ),
+        createElement(
+          'div',
+          { style: STAGE_GRID_STYLE },
+          createElement(CharacterStage, {
+            character: selected,
+            clip: stageClip,
+            opening,
+            onOpeningEnd: () => setOpening(false),
+          }),
+          createElement(
+            'div',
+            { style: GRID_STYLE },
+            state.characters.map((character) =>
+              createElement(CharacterCard, {
+                key: character.id,
+                character,
+                selected: character.id === selected?.id,
+                onSelect: () => setSelectedId(character.id),
+                onSpeak: playTts,
+                onOpening: () => {
+                  setSelectedId(character.id)
+                  setStageClip(null)
+                  setOpening(true)
+                },
+              }),
+            ),
+          ),
         ),
         mode === 'voice'
           ? createElement(
@@ -425,16 +596,29 @@ window.__ModuleLoader__.load({
               createElement('strong', null, '音色选择'),
               createElement(
                 'select',
-                { value: voice, onChange: (event) => setVoice(event.target.value), style: { maxWidth: '420px' } },
+                {
+                  value: voice,
+                  onChange: (event) => setVoice(event.target.value),
+                  style: {
+                    maxWidth: '420px',
+                    padding: '6px 8px',
+                    borderRadius: '8px',
+                    color: COLOR_PRIMARY,
+                    background: SURFACE,
+                    border: `1px solid ${BORDER}`,
+                  },
+                },
                 voices.map((item) => createElement('option', { key: item.id, value: item.id }, `${item.label} · ${item.id}`)),
               ),
-              createElement('small', { style: { opacity: 0.75 } }, volcTtsReady ? '豆包 TTS 已配置，试听会走云端语音。' : '未检测到豆包 TTS 凭据，试听会回退到浏览器语音。'),
-              ttsStatus ? createElement('small', null, ttsStatus) : null,
+              createElement('small', { style: { color: COLOR_CAPTION } }, volcTtsReady ? '豆包 TTS 已配置，试听会走云端语音。' : '未检测到豆包 TTS 凭据，试听会回退到浏览器语音。'),
+              ttsStatus ? createElement('small', { style: { color: COLOR_SECONDARY } }, ttsStatus) : null,
               createElement(
                 'div',
                 { style: { display: 'flex', gap: '8px', alignItems: 'center' } },
                 createElement(Button, { type: 'button', onClick: startVoiceInput }, '语音输入'),
-                createElement('small', { style: { opacity: 0.8 } },
+                createElement('small', {
+                  style: { color: asrState.status === 'error' ? COLOR_DANGER : COLOR_SECONDARY },
+                },
                   asrState.status === 'recognized'
                     ? `识别结果：${asrState.text}`
                     : asrState.status === 'listening'
@@ -444,7 +628,7 @@ window.__ModuleLoader__.load({
                         : ''),
               ),
               turnState && Array.isArray(turnState.emotion) && turnState.emotion.length > 0
-                ? createElement('p', { style: { margin: 0 } }, `最新语义：情绪 ${turnState.emotion.join(' / ')}${turnState.actions?.length ? ` · 动作 ${turnState.actions.join(' / ')}` : ''}`)
+                ? createElement('p', { style: { margin: 0, color: COLOR_PRIMARY } }, `最新语义：情绪 ${turnState.emotion.join(' / ')}${turnState.actions?.length ? ` · 动作 ${turnState.actions.join(' / ')}` : ''}`)
                 : null,
             )
           : null,
@@ -453,10 +637,22 @@ window.__ModuleLoader__.load({
               'div',
               { style: PANEL_STYLE },
               createElement('strong', null, '即梦视频生成（火山引擎）'),
-              createElement('label', { style: FIELD_STYLE }, createElement('span', null, '对话文本'), createElement('textarea', { rows: 3, value: videoText, onChange: (event) => setVideoText(event.target.value), placeholder: '输入一句角色要说的台词' })),
+              createElement('label', { style: FIELD_STYLE }, createElement('span', null, '对话文本'), createElement('textarea', {
+                rows: 3,
+                value: videoText,
+                onChange: (event) => setVideoText(event.target.value),
+                placeholder: '输入一句角色要说的台词',
+                style: {
+                  padding: '8px',
+                  borderRadius: '8px',
+                  color: COLOR_PRIMARY,
+                  background: SURFACE,
+                  border: `1px solid ${BORDER}`,
+                },
+              })),
               createElement(Button, { type: 'button', onClick: submitVideo, style: { alignSelf: 'flex-start' } }, '提交视频生成'),
-              createElement('small', { style: { opacity: 0.75 } }, volcVisualReady ? '火山引擎访问密钥已配置。' : '未配置火山引擎访问密钥，提交后任务会在 dsh jobs 中记录失败原因。'),
-              videoStatus ? createElement('small', null, videoStatus) : null,
+              createElement('small', { style: { color: COLOR_CAPTION } }, volcVisualReady ? '火山引擎访问密钥已配置。' : '未配置火山引擎访问密钥，提交后任务会在 dsh jobs 中记录失败原因。'),
+              videoStatus ? createElement('small', { style: { color: COLOR_SECONDARY } }, videoStatus) : null,
             )
           : null,
         mode === 'realtime'
@@ -466,8 +662,8 @@ window.__ModuleLoader__.load({
               createElement('strong', null, '实时数字人通道'),
               createElement(Button, { type: 'button', onClick: createVolcToken, style: { alignSelf: 'flex-start' } }, '获取火山实时数字人凭证'),
               createElement(Button, { type: 'button', onClick: createViduSession, style: { alignSelf: 'flex-start' } }, '创建 Vidu S1 实时会话'),
-              createElement('small', { style: { opacity: 0.75 } }, '火山 SDK 令牌有效期 14 分钟；Vidu Key 由你的本机 18088 代理持有。'),
-              realtimeStatus ? createElement('small', null, realtimeStatus) : null,
+              createElement('small', { style: { color: COLOR_CAPTION } }, '火山 SDK 令牌有效期 14 分钟；Vidu Key 由你的本机 18088 代理持有。'),
+              realtimeStatus ? createElement('small', { style: { color: COLOR_SECONDARY } }, realtimeStatus) : null,
             )
           : null,
         createElement(
@@ -475,13 +671,13 @@ window.__ModuleLoader__.load({
           { style: PANEL_STYLE },
           createElement('strong', null, '能力状态'),
           providerCards.length > 0 ? providerCards : createElement('small', null, '正在读取 provider 能力…'),
-          createElement('small', { style: { opacity: 0.75 } }, `豆包语音：${volcTtsReady ? '已配置' : '未配置'} · 火山视觉/实时：${volcVisualReady ? '已配置' : '未配置'}`),
+          createElement('small', { style: { color: COLOR_CAPTION } }, `豆包语音：${volcTtsReady ? '已配置' : '未配置'} · 火山视觉/实时：${volcVisualReady ? '已配置' : '未配置'}`),
         ),
         createElement(
           'div',
           { style: PANEL_STYLE },
           createElement('strong', null, '豆包 / 火山密钥配置'),
-          createElement('small', { style: { opacity: 0.75 } }, '保存到 dsh 凭据库（ctx.credentials），不会进入仓库或页面代码。大模型请在 dsh 设置 → Models 选择。'),
+          createElement('small', { style: { color: COLOR_CAPTION } }, '保存到 dsh 凭据库（ctx.credentials），不会进入仓库或页面代码。大模型请在 dsh 设置 → Models 选择。'),
           createElement(Button, { type: 'button', onClick: () => setShowSettings((value) => !value), style: { alignSelf: 'flex-start' } }, showSettings ? '收起配置' : '展开配置'),
           showSettings
             ? createElement(
@@ -509,12 +705,7 @@ window.__ModuleLoader__.load({
                 createElement(Button, { type: 'button', onClick: saveSettings, style: { alignSelf: 'end' } }, '保存密钥'),
               )
             : null,
-          settingsStatus ? createElement('small', null, settingsStatus) : null,
-        ),
-        createElement(
-          'div',
-          { style: GRID_STYLE },
-          state.characters.map((character) => createElement(CharacterCard, { key: character.id, character, onSpeak: playTts })),
+          settingsStatus ? createElement('small', { style: { color: COLOR_SECONDARY } }, settingsStatus) : null,
         ),
       )
     }

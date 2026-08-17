@@ -4,7 +4,7 @@
 
 ## 1. 仓库元数据
 
-- [x] GitHub topic：`dsh-plugin`（另加 `deepseek-harness`、`ai-avatar`、`tts`、`asr`）
+- [x] GitHub topic：`dsh-plugin`（另加 `deepseek-harness`、`live-talk`、`tts`、`asr`）
 - [x] `package.json` 声明 `dsh.bundle` 与 `dsh.client`
 - [x] `prepare` 构建脚本自包含（git 安装可用）
 - [x] `files` 只发布 `lib`、patch、README、LICENSE、发布与授权说明
@@ -16,17 +16,17 @@
 dsh plugin --profile demo add dsh-live-talk
 
 # GitHub 直装（pin 提交；用户需允许 prepare）
-dsh plugin --profile demo add github:eddiehuang227-source/live-talk#v0.5.0
+dsh plugin --profile demo add github:eddiehuang227-source/live-talk#v0.6.0
 
 # tarball
 npm pack
-dsh plugin --profile demo add ./dsh-live-talk-0.5.0.tgz
+dsh plugin --profile demo add ./dsh-live-talk-0.6.0.tgz
 ```
 
 ## 3. 发布前验证
 
 ```sh
-npm test                 # 单元测试（当前 72/72）
+npm test                 # 单元测试（当前 75/75）
 npm run test:integration # 真实 dsh：add → dump-config → web → HTTP/JS 探针
 npm pack --dry-run       # 检查 tarball 内容，确认不含 Key 与未授权素材
 ```
@@ -56,7 +56,7 @@ npm publish --access public
 - 所有云端 Secret 只通过 dsh `ctx.credentials` 引用；`cordis.patch.yml` 与配置中不含密钥。
 - Vidu API Key 留在用户本机 18088 代理中，插件只访问代理。
 - 视频任务以 dsh `ctx.jobs` 的 `live-video` kind 运行，随 owner/session 生命周期取消。
-- 不在 GitHub Actions 或 tarball 中写入 `.env`、凭证或 AItalk 授权素材。
+- 不在 GitHub Actions 或 tarball 中写入 `.env` 或任何凭证；tarball 只包含原创 AI 素材（见 ASSET-LICENSE.md）。
 
 ## 5. 版本策略
 

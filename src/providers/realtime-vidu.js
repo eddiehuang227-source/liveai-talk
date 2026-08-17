@@ -10,16 +10,16 @@ const DEFAULT_PERSONA = '你是一位温柔、自然、回答简洁的中文陪�
 
 const AVATAR_IMAGES = Object.freeze({
   chie: 'https://s41.ax1x.com/2026/08/02/pm5PQyV.jpg',
-  mahiru: 'https://s41.ax1x.com/2026/08/02/pm5PVoQ.jpg',
-  miyuki: 'https://s41.ax1x.com/2026/08/02/pm5PnWn.jpg',
-  rin: 'https://s41.ax1x.com/2026/08/02/pm5PmJs.jpg',
+  wanqing: 'https://s41.ax1x.com/2026/08/02/pm5PVoQ.jpg',
+  qingxian: 'https://s41.ax1x.com/2026/08/02/pm5PnWn.jpg',
+  weixi: 'https://s41.ax1x.com/2026/08/02/pm5PmJs.jpg',
 })
 
 const AVATAR_NAMES = Object.freeze({
   chie: '星之宫知惠',
-  mahiru: '椎名真昼',
-  miyuki: '司波深雪',
-  rin: '远坂凛',
+  wanqing: '林晚晴',
+  qingxian: '顾清弦',
+  weixi: '秦未晞',
 })
 
 export class ViduRealtimeError extends Error {

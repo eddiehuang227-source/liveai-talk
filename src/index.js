@@ -6,6 +6,10 @@
  * effect: unloading this plugin removes the routes and services it owns.
  */
 
+import { createReadStream } from 'node:fs'
+import { stat } from 'node:fs/promises'
+import { extname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { builtinCharacters } from './core/characters.js'
 import { CharacterRegistry } from './core/character-registry.js'
 import { ConversationBridge, createFlowactUserMessage } from './core/conversation-bridge.js'
@@ -132,6 +136,46 @@ async function readJsonBody(request) {
   }
 }
 
+/**
+ * Turn the raw pathname suffix of a `/live/assets/...` request into a safe
+ * package-relative path. Returns null for anything that could escape the
+ * asset roots: empty paths, dot segments, backslashes, and control bytes.
+ */
+function safeAssetRelative(prefix, pathname) {
+  try {
+    const decoded = decodeURIComponent(pathname.slice(prefix.length))
+    const segments = decoded.replace(/^\/+/, '').split('/')
+    if (segments.some((segment) => segment === '' || segment === '.' || segment === '..')) return null
+    if (segments.some((segment) => /[\0-\x1f\\]/.test(segment))) return null
+    const relative = segments.join('/')
+    return relative || null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Parse a single HTTP byte range. Returns `{ start, end }` for a satisfiable
+ * range, `null` when no Range header is present, or `false` when the header
+ * is malformed/unsatisfiable (callers answer 416).
+ */
+function parseByteRange(header, size) {
+  if (!header) return null
+  const match = /^bytes=(\d*)-(\d*)$/.exec(String(header).trim())
+  if (!match || size <= 0) return false
+  if (match[1] === '' && match[2] === '') return false
+  if (match[1] === '') {
+    const suffix = Number(match[2])
+    if (!Number.isFinite(suffix) || suffix <= 0) return false
+    return { start: Math.max(size - suffix, 0), end: size - 1 }
+  }
+  const start = Number(match[1])
+  if (!Number.isFinite(start) || start >= size) return false
+  const end = match[2] === '' ? size - 1 : Math.min(Number(match[2]), size - 1)
+  if (!Number.isFinite(end) || start > end) return false
+  return { start, end }
+}
+
 export function apply(ctx, rawConfig = {}) {
   const config = normalizeConfig(rawConfig)
   const characters = new CharacterRegistry()
@@ -181,7 +225,7 @@ export function apply(ctx, rawConfig = {}) {
           ok: true,
           plugin: 'dsh-live-talk',
           module: name,
-          version: '0.5.0',
+          version: '0.6.0',
           characters: characters.list().length,
           seams: Object.fromEntries(
             Object.entries(SEAMS).map(([key, seam]) => [key, { capability: seam.capability, providers: seams[key].list().length }]),
@@ -345,11 +389,109 @@ export function apply(ctx, rawConfig = {}) {
       },
     })
 
+    const PACKAGED_ASSETS_ROOT = resolve(fileURLToPath(import.meta.url), '..', 'assets')
+    const ASSET_ROOTS = [
+      ...(process.env.LIVE_ASSETS_ROOT ? [resolve(process.env.LIVE_ASSETS_ROOT)] : []),
+      PACKAGED_ASSETS_ROOT,
+    ]
+    const MIME_TYPES = {
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.png': 'image/png',
+      '.svg': 'image/svg+xml',
+      '.mp4': 'video/mp4',
+      '.webm': 'video/webm',
+      '.opus': 'audio/opus',
+      '.wav': 'audio/wav',
+      '.json': 'application/json; charset=utf-8',
+    }
+
     const disposeAssets = ctx.webServer.register({
       kind: 'prefix',
       path: '/live/assets',
-      handler: (_request, response) => {
-        sendText(response, 200, 'image/svg+xml', ASSET_SVG)
+      handler: async (request, response) => {
+        if (request.method !== 'GET' && request.method !== 'HEAD') {
+          response.writeHead(405, {
+            'Content-Type': 'application/json; charset=utf-8',
+            Allow: 'GET, HEAD',
+            'Cache-Control': 'no-store',
+          })
+          response.end(JSON.stringify({ error: 'method not allowed' }))
+          return
+        }
+        const url = new URL(request.url || '/', 'http://127.0.0.1')
+        const relative = safeAssetRelative('/live/assets/', url.pathname)
+        if (relative === null) {
+          sendText(response, 400, 'text/plain; charset=utf-8', 'invalid asset path')
+          return
+        }
+        for (const root of ASSET_ROOTS) {
+          const path = resolve(root, relative)
+          if (path !== root && !path.startsWith(root + '/')) continue
+          let info
+          try {
+            info = await stat(path)
+          } catch {
+            continue
+          }
+          if (!info.isFile()) continue
+          const contentType = MIME_TYPES[extname(path).toLowerCase()] || 'application/octet-stream'
+          const etag = `"${info.size.toString(16)}-${Math.floor(info.mtimeMs).toString(16)}"`
+          const baseHeaders = {
+            'Content-Type': contentType,
+            'Accept-Ranges': 'bytes',
+            'Cache-Control': 'no-cache',
+            ETag: etag,
+            'Last-Modified': new Date(info.mtimeMs).toUTCString(),
+          }
+          const range = parseByteRange(request.headers?.range, info.size)
+          if (range === false) {
+            response.writeHead(416, { ...baseHeaders, 'Content-Range': `bytes */${info.size}` })
+            response.end()
+            return
+          }
+          if (request.headers?.['if-none-match'] === etag) {
+            response.writeHead(304, baseHeaders)
+            response.end()
+            return
+          }
+          if (range) {
+            const { start, end } = range
+            response.writeHead(206, {
+              ...baseHeaders,
+              'Content-Length': end - start + 1,
+              'Content-Range': `bytes ${start}-${end}/${info.size}`,
+            })
+            if (request.method === 'HEAD') {
+              response.end()
+              return
+            }
+            const stream = createReadStream(path, { start, end })
+            stream.on('error', () => response.destroy())
+            stream.pipe(response)
+            return
+          }
+          response.writeHead(200, { ...baseHeaders, 'Content-Length': info.size })
+          if (request.method === 'HEAD') {
+            response.end()
+            return
+          }
+          const stream = createReadStream(path)
+          stream.on('error', () => response.destroy())
+          stream.pipe(response)
+          return
+        }
+        if (extname(relative).toLowerCase() === '.svg') {
+          response.writeHead(200, {
+            'Content-Type': 'image/svg+xml',
+            'Content-Length': Buffer.byteLength(ASSET_SVG),
+            'Cache-Control': 'no-store',
+          })
+          if (request.method === 'HEAD') response.end()
+          else response.end(ASSET_SVG)
+          return
+        }
+        sendJson(response, 404, { error: 'asset not found' })
       },
     })
 

@@ -6,11 +6,13 @@ Animate any photo into a responsive virtual girl. She talks, turns, smiles, and 
 
 | 层 | 位置 | 职责 |
 |---|---|---|
-| dsh 插件壳（发布/安装/UI） | `package.json`、`cordis.patch.yml`、`src/index.js`、`src/client.js` | dsh bundle/client manifest、host 路由、浏览器 `conversation.view` 标签页与零 Key TTS 试听 |
+| dsh 插件壳（发布/安装/UI） | `package.json`、`cordis.patch.yml`、`src/index.js`、`src/client.js` | dsh bundle/client manifest、host 路由、浏览器 `conversation.view` 标签页：选中角色舞台、开场视频、情绪 clip 联动与零 Key TTS 试听 |
 | 对话角色可视化 core | `src/core/characters.js`、`character-registry.js`、`dialogue-pipeline.js`、`emotion.js`、`conversation-bridge.js` | 人物 manifest、人物注册表、与供应商无关的语义管线（句子切分、情绪/动作、TTS 清洗）、dsh session 事件桥 |
 | 语音/视频 provider seam | `src/core/seams.js`、`provider-registry.js` | `asr` / `tts` / `avatar-media` 三个可替换能力注册表 |
 
 当前是**能安装、能显示人物、语音/视频/实时 provider 齐备的切片**：人物卡来自 `/live/characters`，UI 通过 dsh slot 注册；host 已注册 `asr-doubao` / `tts-doubao` / `jimeng` / `realtime-volc` / `realtime-vidu` provider（密钥走 `ctx.credentials` 或本机代理），client 提供零 Key `browser-tts` / `browser-speech`。剩余事项是 `ctx.jobs` 长任务接入与发布整理（见 [ROADMAP.md](ROADMAP.md)）。
+
+人物预览图与开场视频随包发布（`assets/`）；情绪片段来自外部 character pack，缺失时 UI 自动回退到静态头像或占位图。素材授权边界见 [ASSET-LICENSE.md](ASSET-LICENSE.md)。
 
 ![dsh Web UI 中的 Live Talk 视图](docs/screenshot.png)
 
@@ -40,7 +42,7 @@ npm run test:integration   # 需要 DSH_REPO 指向 deepseek-harness 源码
 
 - 仓库添加 topic：`dsh-plugin`；
 - npm：`npm publish`（`lib/` 已预构建）；
-- tarball：`npm pack`，用户 `dsh plugin add ./dsh-live-talk-0.5.0.tgz`；
+- tarball：`npm pack`，用户 `dsh plugin add ./dsh-live-talk-0.6.0.tgz`；
 - 密钥类 provider 一律走 dsh `ctx.credentials`，不在 patch 或配置中携带；
 - 完整清单见 [PUBLISHING.md](PUBLISHING.md)；素材边界见 [ASSET-LICENSE.md](ASSET-LICENSE.md)。
 

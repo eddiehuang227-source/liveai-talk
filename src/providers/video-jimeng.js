@@ -100,7 +100,7 @@ export function createJimengProvider({
     const imageUrl = selectedImageUrl(input.imageUrl)
     const abilityKey = input.ability && JIMENG_ABILITIES[input.ability] ? input.ability : 'v30_1080'
     const ability = JIMENG_ABILITIES[abilityKey]
-    const characterId = /^(chie|mahiru|miyuki|rin|custom-[a-z0-9-]{6,48})$/.test(String(input.characterId || ''))
+    const characterId = /^(chie|wanqing|qingxian|weixi|custom-[a-z0-9-]{6,48})$/.test(String(input.characterId || ''))
       ? input.characterId
       : 'chie'
 

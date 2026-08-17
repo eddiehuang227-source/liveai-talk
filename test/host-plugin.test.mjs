@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { apply, Config, inject, name } from '../lib/index.js'
+import { builtinCharacters } from '../lib/core/characters.js'
 
 class FakeResponse {
   constructor() {
@@ -16,7 +17,7 @@ class FakeResponse {
   }
 
   end(body) {
-    this.body = String(body)
+    this.body = String(body ?? '')
     return this
   }
 }
@@ -77,7 +78,7 @@ function fakeContext(options = {}) {
 
 async function invoke(route, path = route.path, request = { url: path }) {
   const response = new FakeResponse()
-  await route.handler(request, response)
+  await route.handler({ url: path, method: 'GET', headers: {}, ...request }, response)
   return response
 }
 
@@ -109,23 +110,23 @@ test('apply provides the character, seam, pipeline, and config services', () => 
   assert.ok(services.has('livePipeline'))
   assert.ok(services.has('liveConversation'))
   assert.ok(services.has('liveConfig'))
-  assert.equal(services.get('liveCharacters').list().length, 2)
+  assert.equal(services.get('liveCharacters').list().length, builtinCharacters.length)
   assert.equal(typeof services.get('livePipeline').analyze, 'function')
   assert.equal(typeof services.get('liveConversation').handleSessionEvent, 'function')
 })
 
 test('http surface exposes characters and seam metadata', async () => {
   const { ctx, routes } = fakeContext()
-  apply(ctx, { title: '自定义标题', defaultCharacter: 'rin' })
+  apply(ctx, { title: '自定义标题', defaultCharacter: 'weixi' })
 
   const health = JSON.parse((await invoke(routes.get('exact:/live/health'))).body)
   assert.equal(health.ok, true)
-  assert.equal(health.characters, 2)
+  assert.equal(health.characters, builtinCharacters.length)
   assert.equal(health.seams.asr.capability, 'asr')
 
   const characters = JSON.parse((await invoke(routes.get('exact:/live/characters'))).body)
   assert.equal(characters.title, '自定义标题')
-  assert.equal(characters.defaultCharacter, 'rin')
+  assert.equal(characters.defaultCharacter, 'weixi')
   assert.equal(characters.characters[0].id, 'chie')
 
   const seams = JSON.parse((await invoke(routes.get('exact:/live/seams'))).body)
@@ -134,10 +135,17 @@ test('http surface exposes characters and seam metadata', async () => {
   assert.deepEqual(seams.seams.tts.providers, [{ id: 'doubao' }])
   assert.deepEqual(seams.seams.avatarMedia.providers, [{ id: 'jimeng' }, { id: 'realtime-volc' }, { id: 'realtime-vidu' }])
 
-  const asset = await invoke(routes.get('prefix:/live/assets'), '/live/assets/chie.svg')
+  const asset = await invoke(routes.get('prefix:/live/assets'), '/live/assets/placeholder.svg')
   assert.equal(asset.statusCode, 200)
   assert.match(asset.headers['Content-Type'], /image\/svg\+xml/)
   assert.match(asset.body, /<svg/)
+
+  const traversal = await invoke(routes.get('prefix:/live/assets'), '/live/assets/%2e%2e/%2e%2e/.env')
+  assert.equal(traversal.statusCode, 400)
+
+  const head = await invoke(routes.get('prefix:/live/assets'), '/live/assets/placeholder.svg', { method: 'HEAD' })
+  assert.equal(head.statusCode, 200)
+  assert.equal(head.body, '')
 })
 
 test('dialogue pipeline route analyzes emotion, action, and TTS text', async () => {

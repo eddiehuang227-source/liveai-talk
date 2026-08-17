@@ -9,9 +9,9 @@ import { canonicalVolcQuery } from './volc-signature.js'
 
 const DEFAULT_IMAGE = 'https://s41.ax1x.com/2026/08/02/pm5PQyV.jpg'
 const AVATAR_IMAGES = Object.freeze({
-  mahiru: 'https://s41.ax1x.com/2026/08/02/pm5PVoQ.jpg',
-  miyuki: 'https://s41.ax1x.com/2026/08/02/pm5PnWn.jpg',
-  rin: 'https://s41.ax1x.com/2026/08/02/pm5PmJs.jpg',
+  wanqing: 'https://s41.ax1x.com/2026/08/02/pm5PVoQ.jpg',
+  qingxian: 'https://s41.ax1x.com/2026/08/02/pm5PnWn.jpg',
+  weixi: 'https://s41.ax1x.com/2026/08/02/pm5PmJs.jpg',
 })
 
 function sha256Hex(value) {

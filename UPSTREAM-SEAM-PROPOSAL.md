@@ -93,6 +93,6 @@ The video generation path should integrate with `ctx.jobs`, exactly like
 ## Links
 
 - Implementation reference:
-  <https://github.com/eddiehuang227-source/dsh-live-talk>
+  <https://github.com/eddiehuang227-source/live-talk>
 - dsh architecture: capability seams
   (`docs/architecture.md` in `deepseek-ai/deepseek-harness`)
