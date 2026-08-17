@@ -40,7 +40,7 @@ boot manifest。
 
 仓库已带 `.github/workflows/publish.yml`：
 
-1. 在 repo 的 **Settings → Secrets and variables → Actions** 添加 `NPM_TOKEN`（npm access token，类型 Automation）；
+1. 在 repo 的 **Settings → Secrets and variables → Actions** 配置 `NPM_TOKEN`（npm access token；已配置，可重复执行以轮换）；
 2. 在 GitHub 上发布一个新 Release（`published` 事件），或手动运行 workflow；
 3. CI 会先跑 `npm install` → `build` → 全量单测 → `npm pack --dry-run`，全部通过后才执行 `npm publish --access public`。
 

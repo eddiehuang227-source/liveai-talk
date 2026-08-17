@@ -43,7 +43,7 @@
 ## 发布与上游状态
 
 - [x] GitHub：`https://github.com/eddiehuang227-source/live-talk`（public，topics 含 `dsh-plugin`；tag `v0.6.0`，Release 附 `dsh-live-talk-0.6.0.tgz`；0.5.0 及更早的含旧角色名 release/tag 已移除）
-- [x] npm：`dsh-live-talk@0.6.0` 由 release 发布 workflow 自动 `npm publish`（需 repo 的 `NPM_TOKEN` secret）；0.3.0–0.5.0 因携带旧角色名，在 72h 窗口内 `npm unpublish` 或 `npm deprecate`
+- [x] npm：`dsh-live-talk@0.6.0` 已发布并设为 latest；`NPM_TOKEN` secret 已配置，后续 release workflow 可自动发布；0.2.0–0.5.0 已 `npm deprecate`（当前 token 类型不允许 unpublish，如需硬删除需交互登录 + 2FA，并在 72h 窗口内执行）
 - [x] 上游提案：deepseek-harness Discussion **#2431**（Ideas：standard ASR/TTS/avatar-media seams）
 - [x] 真实录制：从 `.hermes/.env.bak` 注入 `DEEPSEEK_API_KEY` 后 `record:live` 成功——DeepSeek 回复 `[emotion: happy] 你好，我是你的数字人伙伴。`，浏览器“最新语义”渲染 happy，截图与 JSON 证据在 `recordings/`
 
