@@ -14,8 +14,6 @@ Animate any photo into a responsive virtual girl. She talks, turns, smiles, and 
 
 人物预览图与开场视频随包发布（`assets/`）；情绪片段来自外部 character pack，缺失时 UI 自动回退到静态头像或占位图。素材授权边界见 [ASSET-LICENSE.md](ASSET-LICENSE.md)。
 
-![dsh Web UI 中的 Live Talk 视图](docs/screenshot.png)
-
 ## 安装（当前 dsh 0.1.0-rc.5 验证）
 
 ```sh

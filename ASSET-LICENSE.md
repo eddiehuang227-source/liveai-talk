@@ -21,7 +21,6 @@ Live Talk 内置四位原创 AI 角色：
 | 开场视频 `assets/*.mp4` | 仓库 | 是 | 原创 AI 生成 |
 | 代码内嵌占位 SVG | `src/index.js` | 是 | MIT（代码生成） |
 | `offline-clips/*` 引用 | `src/core/characters.js` | 否（仅 URL 引用） | 外部 character pack |
-| `docs/screenshot*.png` | 仓库 | 否 | 仅文档用途 |
 
 ## `offline-clips` 外部包说明
 
